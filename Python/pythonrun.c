@@ -1,6 +1,8 @@
 
 /* Python interpreter top-level routines, including init/exit */
 
+#include <pyronia_lib.h>
+
 #include "Python.h"
 
 #include "Python-ast.h"
@@ -172,6 +174,7 @@ Py_InitializeEx(int install_sigs)
     int free_codeset = 0;
     int overridden = 0;
     PyObject *sys_stream;
+    int err = -1;
 #if defined(Py_USING_UNICODE) && defined(HAVE_LANGINFO_H) && defined(CODESET)
     char *saved_locale, *loc_codeset;
 #endif
@@ -199,6 +202,11 @@ Py_InitializeEx(int install_sigs)
         Py_HashRandomizationFlag = add_flag(Py_HashRandomizationFlag, p);
 
     _PyRandom_Init();
+
+    // Pyronia hook: initialize memdom subsystem and open
+    // stack inspection communication channel
+    if ((err = pyr_init()))
+        PyFatalError("Pyronia init failed with error %d\n", err);
 
     interp = PyInterpreterState_New();
     if (interp == NULL)
