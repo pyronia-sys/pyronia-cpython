@@ -16,6 +16,7 @@
 #include "eval.h"
 #include "opcode.h"
 #include "structmember.h"
+#include "pyronia_python.h"
 
 #include <ctype.h>
 
@@ -5258,3 +5259,15 @@ _Py_GetDXProfile(PyObject *self, PyObject *args)
 }
 
 #endif
+
+/* Pyronia hooks */
+
+/** Collect the interpreter's callstack based on its current
+ * state, and parse it into a Pyronia callgraph data structure
+ * that can be sent to the kernel as a response to a
+ * callstack request.
+ */
+pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
+    // FIXME: implement me
+    return NULL;
+}

@@ -20,6 +20,7 @@
 #include "eval.h"
 #include "marshal.h"
 #include "abstract.h"
+#include "pyronia_python.h"
 
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>
@@ -205,7 +206,7 @@ Py_InitializeEx(int install_sigs)
 
     // Pyronia hook: initialize memdom subsystem and open
     // stack inspection communication channel
-    if ((err = pyr_init()))
+    if ((err = pyr_init(LIB_POLICY, Py_Generate_Pyronia_Callstack)))
         PyFatalError("Pyronia init failed with error %d\n", err);
 
     interp = PyInterpreterState_New();
