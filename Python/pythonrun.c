@@ -574,6 +574,10 @@ Py_Finalize(void)
         _PyObject_DebugMallocStats();
 #endif
 
+    // Pyronia hook: Clean up all Pyronia-related
+    // secure state, SI comm and memdoms
+    pyr_exit();
+
     call_ll_exitfuncs();
 }
 
