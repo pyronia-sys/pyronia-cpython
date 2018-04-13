@@ -5267,7 +5267,7 @@ static inline char *get_module_name(PyFrameObject *f) {
   PyObject *name_obj = PyDict_GetItemString(f->f_globals, "__name__");
   if (PyString_Check(name_obj)) {
     return PyString_AsString(name_obj);
-chsr  }
+  }
   return NULL;
 }
 
@@ -5301,7 +5301,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
       printf("[%s] Added cg node for module %s\n", __func__, mod_name);
       child = next;
     }
-    cur_frame = frame->f_back;
+    cur_frame = cur_frame->f_back;
   }
 
   return child;

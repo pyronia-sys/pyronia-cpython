@@ -5,6 +5,9 @@
 # author: Marcela S. Melara
 
 mkdir -p pyronia_build
+
+./load_python_profile
+
 cd pyronia_build
 
 ../configure --with-libs='-lnl-3 -lnl-genl-3 -lsmv -lpyronia'
