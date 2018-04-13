@@ -4,7 +4,7 @@
 # installed on the system side-by-side vanilla Python.
 # author: Marcela S. Melara
 
-mkdir pyronia_build
+mkdir -p pyronia_build
 cd pyronia_build
 
 ../configure --with-libs='-lnl-3 -lnl-genl-3 -lsmv -lpyronia'

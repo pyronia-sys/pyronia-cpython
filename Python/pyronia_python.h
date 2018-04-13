@@ -10,7 +10,7 @@
 #include <linux/pyronia_mac.h>
 #include <pyronia_lib.h>
 
-#define LIB_POLICY "FIXME"
+#define LIB_POLICY "/home/pyronia/cpython/pyronia_build/home.pyronia.cpython.pyronia_build.python-lib.prof"
 
 pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void);
 

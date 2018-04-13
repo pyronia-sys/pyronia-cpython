@@ -207,7 +207,7 @@ Py_InitializeEx(int install_sigs)
     // Pyronia hook: initialize memdom subsystem and open
     // stack inspection communication channel
     if ((err = pyr_init(LIB_POLICY, Py_Generate_Pyronia_Callstack)))
-        PyFatalError("Pyronia init failed with error %d\n", err);
+        Py_FatalError("Pyronia init failed");
 
     interp = PyInterpreterState_New();
     if (interp == NULL)
