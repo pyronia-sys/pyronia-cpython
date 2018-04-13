@@ -5262,12 +5262,51 @@ _Py_GetDXProfile(PyObject *self, PyObject *args)
 
 /* Pyronia hooks */
 
+// returns the name of the module being called in the given frame
+static inline char *get_module_name(PyFrameObject *f) {
+  PyObject *name_obj = PyDict_GetItemString(f->f_globals, "__name__");
+  if (PyString_Check(name_obj)) {
+    return PyString_AsString(name_obj);
+chsr  }
+  return NULL;
+}
+
 /** Collect the interpreter's callstack based on its current
  * state, and parse it into a Pyronia callgraph data structure
  * that can be sent to the kernel as a response to a
  * callstack request.
  */
 pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
-    // FIXME: implement me
-    return NULL;
+  PyFrameObject *cur_frame = PyEval_GetFrame();    
+  pyr_cg_node_t *child = NULL;
+  int err = -1;
+
+  while (cur_frame != NULL) {
+    pyr_cg_node_t *next;
+
+    char *mod_name = get_module_name(cur_frame);
+    if (!mod_name) {
+      Py_FatalError("Could not get the module name for the current frame\n");
+      goto fail;
+    }
+    
+    // let's do an optimization, if the previous frame we visited is for the same
+    // module, skip adding it
+    if (child && strncmp(mod_name, child->lib, strlen(mod_name))) {
+      err = pyr_new_cg_node(&next, mod_name, CAM_DATA, child);
+      if (err) {
+	printf("[%s] Could not create cg node for lib %s\n", __func__, mod_name);
+	goto fail;
+      }
+      printf("[%s] Added cg node for module %s\n", __func__, mod_name);
+      child = next;
+    }
+    cur_frame = frame->f_back;
+  }
+
+  return child;
+ fail:
+  if (child)
+    pyr_free_callgraph(&child);
+  return NULL;
 }
