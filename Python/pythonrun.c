@@ -206,8 +206,8 @@ Py_InitializeEx(int install_sigs)
 
     // Pyronia hook: initialize memdom subsystem and open
     // stack inspection communication channel
-    /*if ((err = pyr_init(LIB_POLICY, Py_Generate_Pyronia_Callstack)))
-      Py_FatalError("Pyronia init failed");*/
+    if ((err = pyr_init(LIB_POLICY, Py_Generate_Pyronia_Callstack)))
+      Py_FatalError("Pyronia init failed");
 
     interp = PyInterpreterState_New();
     if (interp == NULL)
@@ -576,7 +576,7 @@ Py_Finalize(void)
 
     // Pyronia hook: Clean up all Pyronia-related
     // secure state, SI comm and memdoms
-    /*pyr_exit();*/
+    pyr_exit();
 
     call_ll_exitfuncs();
 }
