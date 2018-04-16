@@ -2648,7 +2648,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             READ_TIMESTAMP(intr0);
             err = import_all_from(x, v);
             READ_TIMESTAMP(intr1);
+	    pyr_grant_critical_state_write();
             PyFrame_LocalsToFast(f, 0);
+	    pyr_revoke_critical_state_write();
             Py_DECREF(v);
             if (err == 0) DISPATCH();
             break;
@@ -5116,8 +5118,11 @@ exec_statement(PyFrameObject *f, PyObject *prog, PyObject *globals,
             v = PyRun_String(str, Py_file_input, globals, locals);
         Py_XDECREF(tmp);
     }
-    if (plain)
+    if (plain) {
+        pyr_grant_critical_state_write();
         PyFrame_LocalsToFast(f, 0);
+	pyr_revoke_critical_state_write();
+    }
     if (v == NULL)
         return -1;
     Py_DECREF(v);

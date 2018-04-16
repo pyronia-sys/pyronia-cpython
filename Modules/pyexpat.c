@@ -346,6 +346,7 @@ call_with_frame(PyCodeObject *c, PyObject* func, PyObject* args,
     f = PyFrame_New(tstate, c, PyEval_GetGlobals(), NULL);
     if (f == NULL)
         return NULL;
+    printf("[%s]\n", __func__);
     tstate->frame = f;
 #ifdef FIX_TRACE
     if (trace_frame(tstate, f, PyTrace_CALL, Py_None) < 0) {

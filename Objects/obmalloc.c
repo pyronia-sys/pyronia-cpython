@@ -1,5 +1,7 @@
 #include "Python.h"
 
+#include <memdom_lib.h>
+
 #if defined(__has_feature)  /* Clang */
  #if __has_feature(address_sanitizer)  /* is ASAN enabled? */
   #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS \
@@ -1000,9 +1002,19 @@ PyObject_Free(void *p)
 #ifndef Py_USING_MEMORY_DEBUGGER
     uint arenaindex_temp;
 #endif
+    int memdom_id = -1;
 
     if (p == NULL)      /* free(NULL) has no effect */
         return;
+
+    // Pyronia hook: free an object with memdom_free
+    // if it's been allocated in any memory domain
+    memdom_id = memdom_query_id(p);
+    if (memdom_id > 0) {
+      printf("[%s] In memdom %d\n", __func__, memdom_id);
+      memdom_free(p);
+      return;
+    }
 
 #ifdef WITH_VALGRIND
     if (UNLIKELY(running_on_valgrind > 0))

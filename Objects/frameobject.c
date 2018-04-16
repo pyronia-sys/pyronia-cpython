@@ -7,6 +7,9 @@
 #include "opcode.h"
 #include "structmember.h"
 
+#include <stdio.h>
+#include <pyronia_lib.h>
+
 #undef MIN
 #undef MAX
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -132,6 +135,8 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
         return -1;
     }
 
+    printf("[%s]\n", __func__);
+    
     /* Fail if the line comes before the start of the code block. */
     new_lineno = (int) PyInt_AsLong(p_new_lineno);
     if (new_lineno < f->f_code->co_firstlineno) {
@@ -364,6 +369,8 @@ frame_gettrace(PyFrameObject *f, void *closure)
 static int
 frame_settrace(PyFrameObject *f, PyObject* v, void *closure)
 {
+  printf("[%s]\n", __func__);
+  
     /* We rely on f_lineno being accurate when f_trace is set. */
     f->f_lineno = PyFrame_GetLineNumber(f);
 
@@ -450,6 +457,8 @@ frame_dealloc(PyFrameObject *f)
     PyObject **p, **valuestack;
     PyCodeObject *co;
 
+    printf("[%s]\n", __func__);
+    pyr_grant_critical_state_write();
     PyObject_GC_UnTrack(f);
     Py_TRASHCAN_SAFE_BEGIN(f)
     /* Kill all local variables */
@@ -484,6 +493,7 @@ frame_dealloc(PyFrameObject *f)
         PyObject_GC_Del(f);
 
     Py_DECREF(co);
+    pyr_revoke_critical_state_write();
     Py_TRASHCAN_SAFE_END(f)
 }
 
@@ -523,6 +533,9 @@ frame_clear(PyFrameObject *f)
     PyObject **fastlocals, **p, **oldtop;
     int i, slots;
 
+    printf("[%s]\n", __func__);
+    pyr_grant_critical_state_write();
+    
     /* Before anything else, make sure that this frame is clearly marked
      * as being defunct!  Else, e.g., a generator reachable from this
      * frame may also point to this frame, believe itself to still be
@@ -547,6 +560,8 @@ frame_clear(PyFrameObject *f)
         for (p = f->f_valuestack; p < oldtop; p++)
             Py_CLEAR(*p);
     }
+
+    pyr_revoke_critical_state_write();
 }
 
 static PyObject *
