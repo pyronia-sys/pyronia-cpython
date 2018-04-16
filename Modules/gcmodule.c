@@ -21,6 +21,8 @@
 #include "Python.h"
 #include "frameobject.h"        /* for PyFrame_ClearFreeList */
 
+#include <pyronia_lib.h>
+
 /* Get an object's GC head */
 #define AS_GC(o) ((PyGC_Head *)(o)-1)
 
@@ -1516,6 +1518,32 @@ _PyObject_GC_Malloc(size_t basicsize)
 }
 
 PyObject *
+_PyObject_GC_SecureMalloc(size_t basicsize)
+{
+    PyObject *op;
+    PyGC_Head *g;
+    if (basicsize > PY_SSIZE_T_MAX - sizeof(PyGC_Head))
+        return PyErr_NoMemory();
+    g = (PyGC_Head *)pyr_alloc_critical_runtime_state(
+        sizeof(PyGC_Head) + basicsize);
+    if (g == NULL)
+        return PyErr_NoMemory();
+    g->gc.gc_refs = GC_UNTRACKED;
+    generations[0].count++; /* number of allocated GC objects */
+    if (generations[0].count > generations[0].threshold &&
+        enabled &&
+        generations[0].threshold &&
+        !collecting &&
+        !PyErr_Occurred()) {
+        collecting = 1;
+        collect_generations();
+        collecting = 0;
+    }
+    op = FROM_GC(g);
+    return op;
+}
+
+PyObject *
 _PyObject_GC_New(PyTypeObject *tp)
 {
     PyObject *op = _PyObject_GC_Malloc(_PyObject_SIZE(tp));
@@ -1529,6 +1557,16 @@ _PyObject_GC_NewVar(PyTypeObject *tp, Py_ssize_t nitems)
 {
     const size_t size = _PyObject_VAR_SIZE(tp, nitems);
     PyVarObject *op = (PyVarObject *) _PyObject_GC_Malloc(size);
+    if (op != NULL)
+        op = PyObject_INIT_VAR(op, tp, nitems);
+    return op;
+}
+
+PyVarObject *
+_PyObject_GC_NewSecureVar(PyTypeObject *tp, Py_ssize_t nitems)
+{
+    const size_t size = _PyObject_VAR_SIZE(tp, nitems);
+    PyVarObject *op = (PyVarObject *) _PyObject_GC_SecureMalloc(size);
     if (op != NULL)
         op = PyObject_INIT_VAR(op, tp, nitems);
     return op;

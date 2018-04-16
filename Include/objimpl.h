@@ -310,10 +310,15 @@ PyAPI_FUNC(void) PyObject_GC_Track(void *);
 PyAPI_FUNC(void) PyObject_GC_UnTrack(void *);
 PyAPI_FUNC(void) PyObject_GC_Del(void *);
 
+PyObject *_PyObject_GC_SecureMalloc(size_t);
+PyVarObject *_PyObject_GC_NewSecureVar(PyTypeObject *, Py_ssize_t);
+
 #define PyObject_GC_New(type, typeobj) \
                 ( (type *) _PyObject_GC_New(typeobj) )
 #define PyObject_GC_NewVar(type, typeobj, n) \
                 ( (type *) _PyObject_GC_NewVar((typeobj), (n)) )
+#define PyObject_GC_NewSecureVar(type, typeobj, n) \
+                ( (type *) _PyObject_GC_NewSecureVar((typeobj), (n)) )
 
 
 /* Utility macro to help write tp_traverse functions.

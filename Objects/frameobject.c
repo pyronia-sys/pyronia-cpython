@@ -677,7 +677,7 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
         extras = code->co_stacksize + code->co_nlocals + ncells +
             nfrees;
         if (free_list == NULL) {
-            f = PyObject_GC_NewVar(PyFrameObject, &PyFrame_Type,
+            f = PyObject_GC_NewSecureVar(PyFrameObject, &PyFrame_Type,
             extras);
             if (f == NULL) {
                 Py_DECREF(builtins);

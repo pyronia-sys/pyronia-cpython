@@ -3368,7 +3368,9 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
 
     assert(tstate != NULL);
     assert(globals != NULL);
+    pyr_grant_critical_state_write();
     f = PyFrame_New(tstate, co, globals, locals);
+    pyr_revoke_critical_state_write();
     if (f == NULL)
         return NULL;
 
@@ -4429,7 +4431,9 @@ fast_function(PyObject *func, PyObject ***pp_stack, int n, int na, int nk)
            take builtins without sanity checking them.
         */
         assert(tstate != NULL);
+        pyr_grant_critical_state_write();
         f = PyFrame_New(tstate, co, globals, NULL);
+        pyr_revoke_critical_state_write();
         if (f == NULL)
             return NULL;
 
