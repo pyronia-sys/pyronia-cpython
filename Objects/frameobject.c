@@ -31,7 +31,9 @@ static PyObject * frame_get_ ## NAME(PyFrameObject *f) { \
     if (PyErr_WarnPy3k(#NAME " has been removed in 3.x", 2) < 0) \
         return NULL; \
     if (f->NAME) { \
+        pyr_grant_critical_state_write(); \
         Py_INCREF(f->NAME); \
+        pyr_revoke_critical_state_write(); \
         return f->NAME; \
     } \
     Py_RETURN_NONE;     \
@@ -40,7 +42,9 @@ static int frame_set_ ## NAME(PyFrameObject *f, PyObject *new) { \
     if (PyErr_WarnPy3k(#NAME " has been removed in 3.x", 2) < 0) \
         return -1; \
     if (f->NAME) { \
+        pyr_grant_critical_state_write(); \
         Py_CLEAR(f->NAME); \
+        pyr_revoke_critical_state_write(); \
     } \
     if (new == Py_None) \
         new = NULL; \
@@ -58,8 +62,10 @@ WARN_GET_SET(f_exc_value)
 static PyObject *
 frame_getlocals(PyFrameObject *f, void *closure)
 {
+    pyr_grant_critical_state_write();
     PyFrame_FastToLocals(f);
     Py_INCREF(f->f_locals);
+    pyr_revoke_critical_state_write();
     return f->f_locals;
 }
 
@@ -117,12 +123,16 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
     int in_finally[CO_MAXBLOCKS];       /* (ditto) */
     int blockstack_top = 0;             /* (ditto) */
     unsigned char setup_op = 0;         /* (ditto) */
+    int err = -1;
+
+     printf("[%s]\n", __func__);
+     pyr_grant_critical_state_write();
 
     /* f_lineno must be an integer. */
     if (!PyInt_Check(p_new_lineno)) {
         PyErr_SetString(PyExc_ValueError,
                         "lineno must be an integer");
-        return -1;
+        goto out;
     }
 
     /* You can only do this from within a trace function, not via
@@ -132,18 +142,16 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
         PyErr_Format(PyExc_ValueError,
                      "f_lineno can only be set by a"
                      " line trace function");
-        return -1;
+        goto out;;
     }
 
-    printf("[%s]\n", __func__);
-    
     /* Fail if the line comes before the start of the code block. */
     new_lineno = (int) PyInt_AsLong(p_new_lineno);
     if (new_lineno < f->f_code->co_firstlineno) {
         PyErr_Format(PyExc_ValueError,
                      "line %d comes before the current code block",
                      new_lineno);
-        return -1;
+        goto out;
     }
     else if (new_lineno == f->f_code->co_firstlineno) {
         new_lasti = 0;
@@ -175,7 +183,7 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
         PyErr_Format(PyExc_ValueError,
                      "line %d comes after the current code block",
                      new_lineno);
-        return -1;
+        goto out;
     }
 
     /* We're now ready to look at the bytecode. */
@@ -196,7 +204,7 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
     if (code[new_lasti] == DUP_TOP || code[new_lasti] == POP_TOP) {
         PyErr_SetString(PyExc_ValueError,
             "can't jump to 'except' line as there's no exception");
-        return -1;
+        goto out;
     }
 
     /* You can't jump into or out of a 'finally' block because the 'try'
@@ -285,7 +293,7 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
     if (new_lasti_setup_addr != f_lasti_setup_addr) {
         PyErr_SetString(PyExc_ValueError,
                     "can't jump into or out of a 'finally' block");
-        return -1;
+        goto out;
     }
 
 
@@ -335,7 +343,7 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
     if (new_iblock > min_iblock) {
         PyErr_SetString(PyExc_ValueError,
                         "can't jump into the middle of a block");
-        return -1;
+        goto out;
     }
 
     /* Pop any blocks that we're jumping out of. */
@@ -350,27 +358,31 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
     /* Finally set the new f_lineno and f_lasti and return OK. */
     f->f_lineno = new_lineno;
     f->f_lasti = new_lasti;
-    return 0;
+    err = 0;
+ out:
+    pyr_revoke_critical_state_write();
+    return err;
 }
 
 static PyObject *
 frame_gettrace(PyFrameObject *f, void *closure)
 {
     PyObject* trace = f->f_trace;
-
+    pyr_grant_critical_state_write();
     if (trace == NULL)
         trace = Py_None;
 
     Py_INCREF(trace);
-
+    pyr_revoke_critical_state_write();
     return trace;
 }
 
 static int
 frame_settrace(PyFrameObject *f, PyObject* v, void *closure)
 {
-  printf("[%s]\n", __func__);
-  
+    printf("[%s]\n", __func__);
+
+    pyr_grant_critical_state_write();
     /* We rely on f_lineno being accurate when f_trace is set. */
     f->f_lineno = PyFrame_GetLineNumber(f);
 
@@ -378,6 +390,7 @@ frame_settrace(PyFrameObject *f, PyObject* v, void *closure)
         v = NULL;
     Py_XINCREF(v);
     Py_XSETREF(f->f_trace, v);
+    pyr_revoke_critical_state_write();
 
     return 0;
 }
@@ -503,6 +516,8 @@ frame_traverse(PyFrameObject *f, visitproc visit, void *arg)
     PyObject **fastlocals, **p;
     int i, slots;
 
+    printf("[%s]\n", __func__);
+    pyr_grant_critical_state_write();
     Py_VISIT(f->f_back);
     Py_VISIT(f->f_code);
     Py_VISIT(f->f_builtins);
@@ -524,6 +539,7 @@ frame_traverse(PyFrameObject *f, visitproc visit, void *arg)
         for (p = f->f_valuestack; p < f->f_stacktop; p++)
             Py_VISIT(*p);
     }
+    pyr_revoke_critical_state_write();
     return 0;
 }
 
@@ -766,6 +782,7 @@ PyFrame_BlockSetup(PyFrameObject *f, int type, int handler, int level)
     PyTryBlock *b;
     if (f->f_iblock >= CO_MAXBLOCKS)
         Py_FatalError("XXX block stack overflow");
+    printf("[%s]\n", __func__);
     b = &f->f_blockstack[f->f_iblock++];
     b->b_type = type;
     b->b_level = level;

@@ -748,7 +748,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define FAST_DISPATCH() \
         { \
     if (!lltrace && !_Py_TracingPossible) { \
+        pyr_grant_critical_state_write(); \
         f->f_lasti = INSTR_OFFSET(); \
+        pyr_revoke_critical_state_write();    \
         goto *opcode_targets[*next_instr++]; \
     } \
     goto fast_next_opcode; \
@@ -756,7 +758,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #else
 #define FAST_DISPATCH() { \
         if (!_Py_TracingPossible) { \
+            pyr_grant_critical_state_write(); \
             f->f_lasti = INSTR_OFFSET(); \
+            pyr_revoke_critical_state_write(); \
             goto *opcode_targets[*next_instr++]; \
         } \
         goto fast_next_opcode;\
@@ -1036,7 +1040,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
     next_instr = first_instr + f->f_lasti + 1;
     stack_pointer = f->f_stacktop;
     assert(stack_pointer != NULL);
+    pyr_grant_critical_state_write();
     f->f_stacktop = NULL;       /* remains NULL unless yield suspends frame */
+    pyr_revoke_critical_state_write();
 
 #ifdef LLTRACE
     lltrace = PyDict_GetItemString(f->f_globals, "__lltrace__") != NULL;
@@ -1137,6 +1143,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         }
 
     fast_next_opcode:
+        pyr_grant_critical_state_write();
         f->f_lasti = INSTR_OFFSET();
 
         /* line-by-line tracing support */
@@ -1162,6 +1169,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 goto on_error;
             }
         }
+        pyr_revoke_critical_state_write();
 
         /* Extract opcode and argument */
 
@@ -1281,7 +1289,6 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             FAST_DISPATCH();
         }
 
-       
         TARGET_NOARG(DUP_TOP)
         {
             v = TOP();
@@ -1289,7 +1296,6 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             PUSH(v);
             FAST_DISPATCH();
         }
-
 
         TARGET(DUP_TOPX)
         {
@@ -2096,7 +2102,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         TARGET_NOARG(YIELD_VALUE)
         {
             retval = POP();
+            pyr_grant_critical_state_write();
             f->f_stacktop = stack_pointer;
+            pyr_revoke_critical_state_write();
             why = WHY_YIELD;
             goto fast_yield;
         }
@@ -2119,7 +2127,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         TARGET_NOARG(POP_BLOCK)
         {
             {
+                pyr_grant_critical_state_write();
                 PyTryBlock *b = PyFrame_BlockPop(f);
+                pyr_revoke_critical_state_write();
                 while (STACK_LEVEL() > b->b_level) {
                     v = POP();
                     Py_DECREF(v);
@@ -2277,7 +2287,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         {
             w = GETITEM(names, oparg);
             v = POP();
+            pyr_grant_critical_state_write();
             err = PyDict_SetItem(f->f_globals, w, v);
+            pyr_revoke_critical_state_write();
             Py_DECREF(v);
             if (err == 0) DISPATCH();
             break;
@@ -2286,9 +2298,11 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         TARGET(DELETE_GLOBAL)
         {
             w = GETITEM(names, oparg);
+            pyr_grant_critical_state_write();
             if ((err = PyDict_DelItem(f->f_globals, w)) != 0)
                 format_exc_check_arg(
                     PyExc_NameError, GLOBAL_NAME_ERROR_MSG, w);
+            pyr_revoke_critical_state_write();
             break;
         }
 
@@ -2638,7 +2652,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         TARGET_NOARG(IMPORT_STAR)
         {
             v = POP();
+            pyr_grant_critical_state_write();
             PyFrame_FastToLocals(f);
+            pyr_revoke_critical_state_write();
             if ((x = f->f_locals) == NULL) {
                 PyErr_SetString(PyExc_SystemError,
                     "no locals found during 'import *'");
@@ -2859,9 +2875,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                are not try/except/finally handlers, you may need
                to update the PyGen_NeedsFinalizing() function.
                */
-
+            pyr_grant_critical_state_write();
             PyFrame_BlockSetup(f, opcode, INSTR_OFFSET() + oparg,
                                STACK_LEVEL());
+            pyr_revoke_critical_state_write();
             DISPATCH();
         }
 
@@ -2890,8 +2907,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                equivalent to SETUP_FINALLY except it normalizes
                the exception) before pushing the result of
                __enter__ on the stack. */
+            pyr_grant_critical_state_write();
             PyFrame_BlockSetup(f, SETUP_WITH, INSTR_OFFSET() + oparg,
                                STACK_LEVEL());
+            pyr_revoke_critical_state_write();
 
             PUSH(x);
                 DISPATCH();
@@ -3227,7 +3246,9 @@ fast_block_end:
             }
 
             /* Now we have to pop the block. */
+            pyr_grant_critical_state_write();
             f->f_iblock--;
+            pyr_revoke_critical_state_write();
 
             while (STACK_LEVEL() > b->b_level) {
                 v = POP();
@@ -3582,7 +3603,9 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
     if (co->co_flags & CO_GENERATOR) {
         /* Don't need to keep the reference to f_back, it will be set
          * when the generator is resumed. */
+        pyr_grant_critical_state_write();
         Py_CLEAR(f->f_back);
+        pyr_revoke_critical_state_write();
 
         PCALL(PCALL_GENERATOR);
 
@@ -3714,6 +3737,8 @@ set_exc_info(PyThreadState *tstate,
 
     assert(type != NULL);
     assert(frame != NULL);
+    printf("[%s]\n", __func__);
+    pyr_grant_critical_state_write();
     if (frame->f_exc_type == NULL) {
         assert(frame->f_exc_value == NULL);
         assert(frame->f_exc_traceback == NULL);
@@ -3731,6 +3756,7 @@ set_exc_info(PyThreadState *tstate,
         frame->f_exc_value = tstate->exc_value;
         frame->f_exc_traceback = tstate->exc_traceback;
     }
+    pyr_revoke_critical_state_write();
     /* Set new exception for this thread. */
     tmp_type = tstate->exc_type;
     tmp_value = tstate->exc_value;
@@ -3764,6 +3790,8 @@ reset_exc_info(PyThreadState *tstate)
     assert(frame != NULL);
     assert(frame->f_exc_type != NULL);
 
+    printf("[%s]\n", __func__);
+    pyr_grant_critical_state_write();
     /* Copy the frame's exception info back to the thread state. */
     tmp_type = tstate->exc_type;
     tmp_value = tstate->exc_value;
@@ -3793,6 +3821,7 @@ reset_exc_info(PyThreadState *tstate)
     Py_DECREF(tmp_type);
     Py_XDECREF(tmp_value);
     Py_XDECREF(tmp_tb);
+    pyr_revoke_critical_state_write();
 }
 
 /* Logic for the raise statement (too complicated for inlining).
@@ -4137,7 +4166,9 @@ PyEval_GetLocals(void)
     PyFrameObject *current_frame = PyEval_GetFrame();
     if (current_frame == NULL)
         return NULL;
+    pyr_grant_critical_state_write();
     PyFrame_FastToLocals(current_frame);
+    pyr_revoke_critical_state_write();
     return current_frame->f_locals;
 }
 
@@ -4433,12 +4464,14 @@ fast_function(PyObject *func, PyObject ***pp_stack, int n, int na, int nk)
            take builtins without sanity checking them.
         */
         assert(tstate != NULL);
+        printf("[%s]\n", __func__);
         pyr_grant_critical_state_write();
         f = PyFrame_New(tstate, co, globals, NULL);
         pyr_revoke_critical_state_write();
         if (f == NULL)
             return NULL;
 
+        pyr_grant_critical_state_write();
         fastlocals = f->f_localsplus;
         stack = (*pp_stack) - n;
 
@@ -4446,9 +4479,12 @@ fast_function(PyObject *func, PyObject ***pp_stack, int n, int na, int nk)
             Py_INCREF(*stack);
             fastlocals[i] = *stack++;
         }
+        pyr_revoke_critical_state_write();
         retval = PyEval_EvalFrameEx(f,0);
         ++tstate->recursion_depth;
+        pyr_grant_critical_state_write();
         Py_DECREF(f);
+        pyr_revoke_critical_state_write();
         --tstate->recursion_depth;
         return retval;
     }
@@ -5121,7 +5157,7 @@ exec_statement(PyFrameObject *f, PyObject *prog, PyObject *globals,
     if (plain) {
         pyr_grant_critical_state_write();
         PyFrame_LocalsToFast(f, 0);
-	pyr_revoke_critical_state_write();
+        pyr_revoke_critical_state_write();
     }
     if (v == NULL)
         return -1;
@@ -5191,9 +5227,11 @@ string_concatenate(PyObject *v, PyObject *w,
             PyObject *locals = f->f_locals;
             if (PyDict_CheckExact(locals) &&
                 PyDict_GetItem(locals, name) == v) {
+                pyr_grant_critical_state_write();
                 if (PyDict_DelItem(locals, name) != 0) {
                     PyErr_Clear();
                 }
+                pyr_revoke_critical_state_write();
             }
             break;
         }
