@@ -62,6 +62,7 @@ WARN_GET_SET(f_exc_value)
 static PyObject *
 frame_getlocals(PyFrameObject *f, void *closure)
 {
+    printf("[%s]\n", __func__);
     pyr_grant_critical_state_write();
     PyFrame_FastToLocals(f);
     Py_INCREF(f->f_locals);
@@ -368,6 +369,7 @@ static PyObject *
 frame_gettrace(PyFrameObject *f, void *closure)
 {
     PyObject* trace = f->f_trace;
+    printf("[%s]\n", __func__);
     pyr_grant_critical_state_write();
     if (trace == NULL)
         trace = Py_None;
