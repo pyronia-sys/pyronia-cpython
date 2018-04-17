@@ -764,17 +764,30 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
     (*Py_TYPE(op)->tp_dealloc)((PyObject *)(op)))
 #endif /* !Py_TRACE_REFS */
 
-#define Py_INCREF(op) (                         \
-    _Py_INC_REFTOTAL  _Py_REF_DEBUG_COMMA       \
-    ((PyObject*)(op))->ob_refcnt++)
-
+#include <pyronia_lib.h>
+  
+#define Py_INCREF(op) ({		\
+      int is_crit = pyr_is_critical_state(op);		\
+      if (is_crit)					\
+	pyr_grant_critical_state_write();		\
+      _Py_INC_REFTOTAL  _Py_REF_DEBUG_COMMA		\
+	((PyObject*)(op))->ob_refcnt++;                 \
+      if (is_crit)					\
+	pyr_revoke_critical_state_write();		\
+      op; })
+  
 #define Py_DECREF(op)                                   \
     do {                                                \
+      int is_crit = pyr_is_critical_state(op);		\
+        if (is_crit)                                    \
+	  pyr_grant_critical_state_write();             \
         if (_Py_DEC_REFTOTAL  _Py_REF_DEBUG_COMMA       \
         --((PyObject*)(op))->ob_refcnt != 0)            \
             _Py_CHECK_REFCNT(op)                        \
         else                                            \
-        _Py_Dealloc((PyObject *)(op));                  \
+	  _Py_Dealloc((PyObject *)(op));		\
+	if (is_crit)                                    \
+	  pyr_revoke_critical_state_write();            \
     } while (0)
 
 /* Safely decref `op` and set `op` to NULL, especially useful in tp_clear
@@ -815,8 +828,13 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
     do {                                        \
         if (op) {                               \
             PyObject *_py_tmp = (PyObject *)(op);               \
-            (op) = NULL;                        \
-            Py_DECREF(_py_tmp);                 \
+	    int is_crit = pyr_is_critical_state(op);		\
+	    if (is_crit)					\
+	      pyr_grant_critical_state_write();			\
+            (op) = NULL;					\
+	    if (is_crit)					\
+	      pyr_revoke_critical_state_write();		\
+            Py_DECREF(_py_tmp);					\
         }                                       \
     } while (0)
 
@@ -846,14 +864,24 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
 #define Py_SETREF(op, op2)                      \
     do {                                        \
         PyObject *_py_tmp = (PyObject *)(op);   \
+	int is_crit = pyr_is_critical_state(op);		\
+	if (is_crit)						\
+	  pyr_grant_critical_state_write();			\
         (op) = (op2);                           \
+	if (is_crit)						\
+	  pyr_revoke_critical_state_write();			\
         Py_DECREF(_py_tmp);                     \
     } while (0)
 
 #define Py_XSETREF(op, op2)                     \
     do {                                        \
         PyObject *_py_tmp = (PyObject *)(op);   \
+	int is_crit = pyr_is_critical_state(op);		\
+	if (is_crit)						\
+	  pyr_grant_critical_state_write();			\
         (op) = (op2);                           \
+	if (is_crit)						\
+	  pyr_revoke_critical_state_write();			\
         Py_XDECREF(_py_tmp);                    \
     } while (0)
 

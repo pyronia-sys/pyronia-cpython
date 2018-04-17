@@ -1596,7 +1596,23 @@ PyObject_GC_Del(void *op)
     if (generations[0].count > 0) {
         generations[0].count--;
     }
+    
     PyObject_FREE(g);
+}
+
+void
+PyObject_GC_SecureDel(void *op)
+{
+    PyGC_Head *g = AS_GC(op);
+    if (IS_TRACKED(op))
+        gc_list_remove(g);
+    if (generations[0].count > 0) {
+        generations[0].count--;
+    }
+
+    // Pyronia hook: free an object with memdom_free
+    // if it's been allocated in any memory domain
+    pyr_free_isolated_state(op);
 }
 
 /* for binary compatibility with 2.2 */

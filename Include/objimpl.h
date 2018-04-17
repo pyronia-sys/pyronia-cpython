@@ -319,7 +319,7 @@ PyVarObject *_PyObject_GC_NewSecureVar(PyTypeObject *, Py_ssize_t);
                 ( (type *) _PyObject_GC_NewVar((typeobj), (n)) )
 #define PyObject_GC_NewSecureVar(type, typeobj, n) \
                 ( (type *) _PyObject_GC_NewSecureVar((typeobj), (n)) )
-
+void PyObject_GC_SecureDel(void *);
 
 /* Utility macro to help write tp_traverse functions.
  * To use this macro, the tp_traverse function must name its arguments

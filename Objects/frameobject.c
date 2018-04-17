@@ -31,9 +31,7 @@ static PyObject * frame_get_ ## NAME(PyFrameObject *f) { \
     if (PyErr_WarnPy3k(#NAME " has been removed in 3.x", 2) < 0) \
         return NULL; \
     if (f->NAME) { \
-        pyr_grant_critical_state_write(); \
         Py_INCREF(f->NAME); \
-        pyr_revoke_critical_state_write(); \
         return f->NAME; \
     } \
     Py_RETURN_NONE;     \
@@ -42,9 +40,7 @@ static int frame_set_ ## NAME(PyFrameObject *f, PyObject *new) { \
     if (PyErr_WarnPy3k(#NAME " has been removed in 3.x", 2) < 0) \
         return -1; \
     if (f->NAME) { \
-        pyr_grant_critical_state_write(); \
         Py_CLEAR(f->NAME); \
-        pyr_revoke_critical_state_write(); \
     } \
     if (new == Py_None) \
         new = NULL; \
@@ -472,7 +468,6 @@ frame_dealloc(PyFrameObject *f)
     PyObject **p, **valuestack;
     PyCodeObject *co;
 
-    printf("[%s]\n", __func__);
     pyr_grant_critical_state_write();
     PyObject_GC_UnTrack(f);
     Py_TRASHCAN_SAFE_BEGIN(f)
@@ -505,7 +500,7 @@ frame_dealloc(PyFrameObject *f)
         free_list = f;
     }
     else
-        PyObject_GC_Del(f);
+        PyObject_GC_SecureDel(f);
 
     Py_DECREF(co);
     pyr_revoke_critical_state_write();
@@ -518,7 +513,6 @@ frame_traverse(PyFrameObject *f, visitproc visit, void *arg)
     PyObject **fastlocals, **p;
     int i, slots;
 
-    printf("[%s]\n", __func__);
     pyr_grant_critical_state_write();
     Py_VISIT(f->f_back);
     Py_VISIT(f->f_code);
@@ -551,7 +545,6 @@ frame_clear(PyFrameObject *f)
     PyObject **fastlocals, **p, **oldtop;
     int i, slots;
 
-    printf("[%s]\n", __func__);
     pyr_grant_critical_state_write();
     
     /* Before anything else, make sure that this frame is clearly marked
@@ -722,6 +715,7 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
             --numfree;
             f = free_list;
             free_list = free_list->f_back;
+	    printf("[%s] resize frame\n", __func__);
             if (Py_SIZE(f) < extras) {
                 f = PyObject_GC_Resize(PyFrameObject, f, extras);
                 if (f == NULL) {
@@ -784,7 +778,6 @@ PyFrame_BlockSetup(PyFrameObject *f, int type, int handler, int level)
     PyTryBlock *b;
     if (f->f_iblock >= CO_MAXBLOCKS)
         Py_FatalError("XXX block stack overflow");
-    printf("[%s]\n", __func__);
     b = &f->f_blockstack[f->f_iblock++];
     b->b_type = type;
     b->b_level = level;
@@ -999,7 +992,7 @@ PyFrame_ClearFreeList(void)
     while (free_list != NULL) {
         PyFrameObject *f = free_list;
         free_list = free_list->f_back;
-        PyObject_GC_Del(f);
+        PyObject_GC_SecureDel(f);
         --numfree;
     }
     assert(numfree == 0);
