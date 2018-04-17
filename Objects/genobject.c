@@ -7,6 +7,8 @@
 #include "structmember.h"
 #include "opcode.h"
 
+#include <pyronia_lib.h>
+
 static int
 gen_traverse(PyGenObject *gen, visitproc visit, void *arg)
 {

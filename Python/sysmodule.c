@@ -46,6 +46,8 @@ extern const char *PyWin_DLLVersionString;
 #include <langinfo.h>
 #endif
 
+#include <pyronia_lib.h>
+
 PyObject *
 PySys_GetObject(char *name)
 {
