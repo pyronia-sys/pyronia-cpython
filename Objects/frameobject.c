@@ -365,13 +365,10 @@ static PyObject *
 frame_gettrace(PyFrameObject *f, void *closure)
 {
     PyObject* trace = f->f_trace;
-    printf("[%s]\n", __func__);
-    pyr_grant_critical_state_write();
     if (trace == NULL)
         trace = Py_None;
 
     Py_INCREF(trace);
-    pyr_revoke_critical_state_write();
     return trace;
 }
 

@@ -73,7 +73,6 @@ gen_send_ex(PyGenObject *gen, PyObject *arg, int exc)
         /* Push arg onto the frame's value stack */
         result = arg ? arg : Py_None;
         Py_INCREF(result);
-        printf("[%s]\n", __func__);
         pyr_grant_critical_state_write();
         *(f->f_stacktop++) = result;
         pyr_revoke_critical_state_write();

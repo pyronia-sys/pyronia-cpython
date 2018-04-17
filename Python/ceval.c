@@ -982,11 +982,11 @@ PyObject *basic_pop_secure(void) {
 }
 #define PUSH(v)                { pyr_grant_critical_state_write(); \
                                  BASIC_PUSH(v); \
-				 pyr_grant_critical_state_write(); }
+				 pyr_revoke_critical_state_write(); }
 #define POP()                  basic_pop_secure()             
 #define STACKADJ(n)            { pyr_grant_critical_state_write(); \
                                  BASIC_STACKADJ(n); \
-				 pyr_grant_critical_state_write(); }
+				 pyr_revoke_critical_state_write(); }
 #define EXT_POP(STACK_POINTER) (*--(STACK_POINTER))
 #endif
 

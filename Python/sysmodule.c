@@ -835,13 +835,13 @@ sys_getframe(PyObject *self, PyObject *args)
         f = f->f_back;
         --depth;
     }
+    pyr_revoke_critical_state_write();
     if (f == NULL) {
         PyErr_SetString(PyExc_ValueError,
                         "call stack is not deep enough");
         return NULL;
     }
     Py_INCREF(f);
-    pyr_revoke_critical_state_write();
     return (PyObject*)f;
 }
 
