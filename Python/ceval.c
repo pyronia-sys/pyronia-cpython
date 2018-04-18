@@ -712,9 +712,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define TARGET_WITH_IMPL(op, impl) \
         TARGET_##op: \
         opcode = op; \
-        pyr_grant_critical_state_write(); \
         oparg = NEXTARG(); \
-        pyr_revoke_critical_state_write(); \
         case op: \
         goto impl; \
 
@@ -732,9 +730,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define TARGET(op) \
         TARGET_##op: \
         opcode = op; \
-        pyr_grant_critical_state_write(); \
         oparg = NEXTARG(); \
-        pyr_revoke_critical_state_write(); \
         case op:\
 
 
@@ -765,6 +761,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             pyr_grant_critical_state_write(); \
             f->f_lasti = INSTR_OFFSET(); \
             pyr_revoke_critical_state_write(); \
+	    printf("next target: %d\n", (*next_instr)); \
             goto *opcode_targets[*next_instr++]; \
         } \
         goto fast_next_opcode;\
@@ -883,9 +880,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define NEXTOP()        (*next_instr++)
 #define NEXTARG()       (next_instr += 2, (next_instr[-1]<<8) + next_instr[-2])
 #define PEEKARG()       ((next_instr[2]<<8) + next_instr[1])
-#define JUMPTO(x)       pyr_grant_critical_state_write();       \
-                        next_instr = first_instr + (x); \
-                        pyr_revoke_critical_state_write()
+#define JUMPTO(x)       next_instr = first_instr + (x)
 #define JUMPBY(x)       (next_instr += (x))
 
 /* OpCode prediction macros
@@ -933,37 +928,21 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define THIRD()           (stack_pointer[-3])
 #define FOURTH()          (stack_pointer[-4])
 #define PEEK(n)           (stack_pointer[-(n)])
-#define SET_TOP(v)       pyr_grant_critical_state_write();    \
-  (stack_pointer[-1] = (v));                                  \
-  pyr_revoke_critical_state_write();
-#define SET_SECOND(v)    pyr_grant_critical_state_write();    \
-  (stack_pointer[-2] = (v));                                  \
-  pyr_revoke_critical_state_write();
-#define SET_THIRD(v)     pyr_grant_critical_state_write(); \
-  (stack_pointer[-3] = (v));                               \
-  pyr_revoke_critical_state_write();
-#define SET_FOURTH(v)    pyr_grant_critical_state_write();   \
-  (stack_pointer[-4] = (v));                                 \
-  pyr_revoke_critical_state_write();
-#define SET_VALUE(n, v)   pyr_grant_critical_state_write();   \
-  (stack_pointer[-(n)] = (v));                                \
-  pyr_revoke_critical_state_write();
+#define SET_TOP(v)        (stack_pointer[-1] = (v))
+#define SET_SECOND(v)     (stack_pointer[-2] = (v))
+#define SET_THIRD(v)      (stack_pointer[-3] = (v))
+#define SET_FOURTH(v)     (stack_pointer[-4] = (v))
+#define SET_VALUE(n, v)   (stack_pointer[-(n)] = (v))
 #define BASIC_STACKADJ(n) (stack_pointer += n)
 #define BASIC_PUSH(v)     (*stack_pointer++ = (v))
 #define BASIC_POP()       (*--stack_pointer)
 
-
 #ifdef LLTRACE
-#define PUSH(v)         { pyr_grant_critical_state_write(); \
-                          (void)(BASIC_PUSH(v), \
-                          lltrace && prtrace(TOP(), "push")); \
-                          assert(STACK_LEVEL() <= co->co_stacksize); \
-                          pyr_revoke_critical_state_write(); }
-#define POP()           { pyr_grant_critical_state_write(); \
-                          PyObject *tmp = BASIC_POP(); \
-                          pyr_revoke_critical_state_write(); \
-                          ((void)(lltrace && prtrace(TOP(), "pop")),    \
-                           tmp)
+#define PUSH(v)         { (void)(BASIC_PUSH(v),	\
+			  lltrace && prtrace(TOP(), "push")); \
+                          assert(STACK_LEVEL() <= co->co_stacksize); }
+#define POP()           ((void)(lltrace && prtrace(TOP(), "pop")), \
+                         BASIC_POP())
 #define STACKADJ(n)     { pyr_grant_critical_state_write(); \
                           (void)(BASIC_STACKADJ(n), \
                           lltrace && prtrace(TOP(), "stackadj")); \
@@ -973,29 +952,22 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                                 prtrace((STACK_POINTER)[-1], "ext_pop")), \
                                 *--(STACK_POINTER))
 #else
-PyObject *basic_pop_secure(void) {
-    PyObject *tmp;
-    pyr_grant_critical_state_write();
-    tmp = BASIC_POP();
-    pyr_revoke_critical_state_write();
-    return tmp;
-}
-
-PyObject *ext_pop_secure(void) {
-    PyObject *tmp;
-    return tmp;
-}
 #define PUSH(v)                { pyr_grant_critical_state_write(); \
                                  BASIC_PUSH(v); \
                                  pyr_revoke_critical_state_write(); }
-#define POP()                  basic_pop_secure()
+#define POP()                  ({ PyObject *tmp; \
+                                pyr_grant_critical_state_write(); \
+				tmp = BASIC_POP(); \
+				pyr_revoke_critical_state_write(); \
+				tmp; })
 #define STACKADJ(n)            { pyr_grant_critical_state_write(); \
                                  BASIC_STACKADJ(n); \
                                  pyr_revoke_critical_state_write(); }
 #define EXT_POP(STACK_POINTER) ({ pyr_grant_critical_state_write(); \
-            *--(STACK_POINTER);                                     \
-            pyr_revoke_critical_state_write();                      \
-            STACK_POINTER; })
+                               --STACK_POINTER; \
+			       pyr_revoke_critical_state_write(); \
+			       *STACK_POINTER; })
+
 
 #endif
 
@@ -1189,6 +1161,7 @@ PyObject *ext_pop_secure(void) {
         }
 
     fast_next_opcode:
+	printf("fast_next_opcode \n");
         pyr_grant_critical_state_write();
         f->f_lasti = INSTR_OFFSET();
 
@@ -1215,16 +1188,14 @@ PyObject *ext_pop_secure(void) {
                 goto on_error;
             }
         }
-        pyr_revoke_critical_state_write();
+	pyr_revoke_critical_state_write();
 
         /* Extract opcode and argument */
-        pyr_grant_critical_state_write();
         opcode = NEXTOP();
         oparg = 0;   /* allows oparg to be stored in a register because
             it doesn't have to be remembered across a full loop */
         if (HAS_ARG(opcode))
             oparg = NEXTARG();
-        pyr_revoke_critical_state_write();
     dispatch_opcode:
 #ifdef DYNAMIC_EXECUTION_PROFILE
 #ifdef DXPAIRS
@@ -1249,6 +1220,8 @@ PyObject *ext_pop_secure(void) {
         }
 #endif
 
+	printf("[%s] Next opcode: %d\n", __func__, opcode);
+	
         /* Main switch on opcode */
         READ_TIMESTAMP(inst0);
 
@@ -2232,10 +2205,12 @@ PyObject *ext_pop_secure(void) {
             w = GETITEM(names, oparg);
             v = POP();
             if ((x = f->f_locals) != NULL) {
+	        pyr_grant_critical_state_write();
                 if (PyDict_CheckExact(x))
                     err = PyDict_SetItem(x, w, v);
                 else
                     err = PyObject_SetItem(x, w, v);
+		pyr_revoke_critical_state_write();
                 Py_DECREF(v);
                 if (err == 0) DISPATCH();
                 break;
@@ -2662,7 +2637,8 @@ PyObject *ext_pop_secure(void) {
             Py_INCREF(x);
             v = POP();
             u = TOP();
-            if (PyInt_AsLong(u) != -1 || PyErr_Occurred())
+	    pyr_grant_critical_state_write();
+            if (PyInt_AsLong(u) != -1 || PyErr_Occurred()) {
                 w = PyTuple_Pack(5,
                             w,
                             f->f_globals,
@@ -2670,13 +2646,17 @@ PyObject *ext_pop_secure(void) {
                                   Py_None : f->f_locals,
                             v,
                             u);
-            else
+	    }
+            else {
                 w = PyTuple_Pack(4,
                             w,
                             f->f_globals,
                             f->f_locals == NULL ?
                                   Py_None : f->f_locals,
                             v);
+	    }
+	    pyr_revoke_critical_state_write();
+	    printf("After tuple pack\n");
             Py_DECREF(v);
             Py_DECREF(u);
             if (w == NULL) {
@@ -2687,11 +2667,13 @@ PyObject *ext_pop_secure(void) {
             }
             READ_TIMESTAMP(intr0);
             v = x;
+	    printf("Before call object\n");
             x = PyEval_CallObject(v, w);
             Py_DECREF(v);
             READ_TIMESTAMP(intr1);
             Py_DECREF(w);
             SET_TOP(x);
+	    printf("after set top\n");
             if (x != NULL) DISPATCH();
             break;
         }
@@ -2733,9 +2715,7 @@ PyObject *ext_pop_secure(void) {
 
         TARGET(JUMP_FORWARD)
         {
-            pyr_grant_critical_state_write();
             JUMPBY(oparg);
-            pyr_revoke_critical_state_write();
             FAST_DISPATCH();
         }
 
@@ -3196,10 +3176,8 @@ PyObject *ext_pop_secure(void) {
 
         TARGET(EXTENDED_ARG)
         {
-            pyr_grant_critical_state_write();
             opcode = NEXTOP();
             oparg = oparg<<16 | NEXTARG();
-            pyr_revoke_critical_state_write();
             goto dispatch_opcode;
         }
 
@@ -3649,7 +3627,9 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
         for (i = 0; i < PyTuple_GET_SIZE(co->co_freevars); ++i) {
             PyObject *o = PyTuple_GET_ITEM(closure, i);
             Py_INCREF(o);
+	    pyr_grant_critical_state_write();
             freevars[PyTuple_GET_SIZE(co->co_cellvars) + i] = o;
+	    pyr_revoke_critical_state_write();
         }
     }
 
@@ -4413,6 +4393,8 @@ call_function(PyObject ***pp_stack, int oparg
     PyObject *func = *pfunc;
     PyObject *x, *w;
 
+    printf("[%s] Is func in interpdom? %s\n", __func__, (pyr_is_critical_state(func) ? "yes" : "no"));
+    
     /* Always dispatch PyCFunction first, because these are
        presumed to be the most frequent callable object.
     */
@@ -5264,8 +5246,11 @@ string_concatenate(PyObject *v, PyObject *w,
             PyObject **freevars = (f->f_localsplus +
                                    f->f_code->co_nlocals);
             PyObject *c = freevars[PEEKARG()];
-            if (PyCell_GET(c) == v)
-                PyCell_Set(c, NULL);
+            if (PyCell_GET(c) == v) {
+	        pyr_grant_critical_state_write();
+	        PyCell_Set(c, NULL);
+		pyr_revoke_critical_state_write();
+	    }
             break;
         }
         case STORE_NAME:
