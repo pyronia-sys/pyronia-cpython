@@ -312,7 +312,6 @@ call_trampoline(PyThreadState *tstate, PyObject* callback,
 
     if (args == NULL)
         return NULL;
-    printf("[%s]\n", __func__);
     pyr_grant_critical_state_write();
     Py_INCREF(frame);
     pyr_revoke_critical_state_write();
@@ -326,12 +325,10 @@ call_trampoline(PyThreadState *tstate, PyObject* callback,
     PyTuple_SET_ITEM(args, 2, arg);
 
     /* call the Python-level function */
-    printf("[%s] fast to locals\n", __func__);
     pyr_grant_critical_state_write();
     PyFrame_FastToLocals(frame);
     pyr_revoke_critical_state_write();
     result = PyEval_CallObject(callback, args);
-    printf("[%s] locals to fast\n", __func__);
     pyr_grant_critical_state_write();
     PyFrame_LocalsToFast(frame, 1);
     if (result == NULL)
@@ -829,7 +826,6 @@ sys_getframe(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "|i:_getframe", &depth))
         return NULL;
 
-    printf("[%s]\n", __func__);
     pyr_grant_critical_state_write();
     while (depth > 0 && f != NULL) {
         f = f->f_back;

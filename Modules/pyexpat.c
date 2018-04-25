@@ -343,7 +343,6 @@ call_with_frame(PyCodeObject *c, PyObject* func, PyObject* args,
     if (c == NULL)
         return NULL;
 
-    printf("[%s]\n", __func__);
     f = PyFrame_New(tstate, c, PyEval_GetGlobals(), NULL);
     if (f == NULL)
         return NULL;

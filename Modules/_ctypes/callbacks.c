@@ -168,7 +168,6 @@ void _ctypes_add_traceback(char *funcname, char *filename, int lineno)
         0                    /*PyObject *locals*/
         );
     if (!py_frame) goto bad;
-    printf("[%s]\n", __func__);
     py_frame->f_lineno = lineno;
     PyTraceBack_Here(py_frame);
   bad:
