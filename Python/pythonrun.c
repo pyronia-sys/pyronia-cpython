@@ -209,6 +209,8 @@ Py_InitializeEx(int install_sigs)
     if ((err = pyr_init(LIB_POLICY, Py_Generate_Pyronia_Callstack)))
       Py_FatalError("Pyronia init failed");
 
+    printf("done initializing pyronia\n");
+    
     interp = PyInterpreterState_New();
     if (interp == NULL)
         Py_FatalError("Py_Initialize: can't make first interpreter");

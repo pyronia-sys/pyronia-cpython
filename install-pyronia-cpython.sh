@@ -4,6 +4,7 @@
 # installed on the system side-by-side vanilla Python.
 # author: Marcela S. Melara
 
+ulimit -c unlimited
 mkdir -p pyronia_build
 
 ./load_python_profile

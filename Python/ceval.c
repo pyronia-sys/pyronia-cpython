@@ -751,6 +751,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         pyr_grant_critical_state_write(); \
         f->f_lasti = INSTR_OFFSET(); \
         pyr_revoke_critical_state_write();    \
+	pyrlog("[%s] Next instruction: %d\n", __func__, *next_instr); \
         goto *opcode_targets[*next_instr++]; \
     } \
     goto fast_next_opcode; \
@@ -761,7 +762,6 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             pyr_grant_critical_state_write(); \
             f->f_lasti = INSTR_OFFSET(); \
             pyr_revoke_critical_state_write(); \
-	    printf("next target: %d\n", (*next_instr)); \
             goto *opcode_targets[*next_instr++]; \
         } \
         goto fast_next_opcode;\
@@ -928,11 +928,21 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define THIRD()           (stack_pointer[-3])
 #define FOURTH()          (stack_pointer[-4])
 #define PEEK(n)           (stack_pointer[-(n)])
-#define SET_TOP(v)        (stack_pointer[-1] = (v))
-#define SET_SECOND(v)     (stack_pointer[-2] = (v))
-#define SET_THIRD(v)      (stack_pointer[-3] = (v))
-#define SET_FOURTH(v)     (stack_pointer[-4] = (v))
-#define SET_VALUE(n, v)   (stack_pointer[-(n)] = (v))
+#define SET_TOP(v)        { pyr_grant_critical_state_write(); \
+      stack_pointer[-1] = (v); \
+      pyr_revoke_critical_state_write(); }
+#define SET_SECOND(v)     { pyr_grant_critical_state_write(); \
+      stack_pointer[-2] = (v); \
+      pyr_revoke_critical_state_write(); }
+#define SET_THIRD(v)      { pyr_grant_critical_state_write(); \
+      stack_pointer[-3] = (v); \
+      pyr_revoke_critical_state_write(); }
+#define SET_FOURTH(v)     { pyr_grant_critical_state_write(); \
+      stack_pointer[-4] = (v); \
+      pyr_revoke_critical_state_write(); }
+#define SET_VALUE(n, v)   { pyr_grant_critical_state_write(); \
+      stack_pointer[-(n)] = (v);			      \
+      pyr_revoke_critical_state_write(); }
 #define BASIC_STACKADJ(n) (stack_pointer += n)
 #define BASIC_PUSH(v)     (*stack_pointer++ = (v))
 #define BASIC_POP()       (*--stack_pointer)
@@ -1161,7 +1171,6 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         }
 
     fast_next_opcode:
-	printf("fast_next_opcode \n");
         pyr_grant_critical_state_write();
         f->f_lasti = INSTR_OFFSET();
 
@@ -1219,8 +1228,6 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
         }
 #endif
-
-	printf("[%s] Next opcode: %d\n", __func__, opcode);
 	
         /* Main switch on opcode */
         READ_TIMESTAMP(inst0);
@@ -2206,12 +2213,12 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             v = POP();
             if ((x = f->f_locals) != NULL) {
 	        pyr_grant_critical_state_write();
-                if (PyDict_CheckExact(x))
+	        if (PyDict_CheckExact(x))
                     err = PyDict_SetItem(x, w, v);
                 else
                     err = PyObject_SetItem(x, w, v);
-		pyr_revoke_critical_state_write();
                 Py_DECREF(v);
+		pyr_revoke_critical_state_write();
                 if (err == 0) DISPATCH();
                 break;
             }
@@ -2490,7 +2497,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 
         TARGET(BUILD_TUPLE)
         {
+	    pyr_grant_critical_state_write();
             x = PyTuple_New(oparg);
+	    pyr_revoke_critical_state_write();
             if (x != NULL) {
                 for (; --oparg >= 0;) {
                     w = POP();
@@ -2504,7 +2513,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 
         TARGET(BUILD_LIST)
         {
-            x =  PyList_New(oparg);
+	    pyr_grant_critical_state_write();
+	    x =  PyList_New(oparg);
+	    pyr_revoke_critical_state_write();
             if (x != NULL) {
                 for (; --oparg >= 0;) {
                     w = POP();
@@ -2581,8 +2592,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         {
             w = GETITEM(names, oparg);
             v = TOP();
+	    pyr_grant_critical_state_write();
             x = PyObject_GetAttr(v, w);
             Py_DECREF(v);
+	    pyr_revoke_critical_state_write();
             SET_TOP(x);
             if (x != NULL) DISPATCH();
             break;
@@ -2641,7 +2654,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             if (PyInt_AsLong(u) != -1 || PyErr_Occurred()) {
                 w = PyTuple_Pack(5,
                             w,
-                            f->f_globals,
+			    f->f_globals,
                             f->f_locals == NULL ?
                                   Py_None : f->f_locals,
                             v,
@@ -2656,7 +2669,6 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                             v);
 	    }
 	    pyr_revoke_critical_state_write();
-	    printf("After tuple pack\n");
             Py_DECREF(v);
             Py_DECREF(u);
             if (w == NULL) {
@@ -2667,13 +2679,13 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             READ_TIMESTAMP(intr0);
             v = x;
-	    printf("Before call object\n");
+	    pyr_grant_critical_state_write();
             x = PyEval_CallObject(v, w);
             Py_DECREF(v);
             READ_TIMESTAMP(intr1);
             Py_DECREF(w);
             SET_TOP(x);
-	    printf("after set top\n");
+	    pyr_revoke_critical_state_write();
             if (x != NULL) DISPATCH();
             break;
         }
@@ -3046,7 +3058,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #else
             x = call_function(&sp, oparg);
 #endif
+	    pyr_grant_critical_state_write();
             stack_pointer = sp;
+	    pyr_revoke_critical_state_write();
             PUSH(x);
             if (x != NULL) DISPATCH();
             break;
@@ -3101,7 +3115,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         TARGET(MAKE_FUNCTION)
         {
             v = POP(); /* code object */
+	    pyr_grant_critical_state_write();
             x = PyFunction_New(v, f->f_globals);
+	    pyr_revoke_critical_state_write();
             Py_DECREF(v);
             /* XXX Maybe this should be a separate opcode? */
             if (x != NULL && oparg > 0) {
@@ -3249,7 +3265,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         /* Log traceback info if this is a real exception */
 
         if (why == WHY_EXCEPTION) {
-            PyTraceBack_Here(f);
+	    pyr_grant_critical_state_write();
+	    PyTraceBack_Here(f);
+	    pyr_revoke_critical_state_write();
 
             if (tstate->c_tracefunc != NULL)
                 call_exc_trace(tstate->c_tracefunc,
@@ -3644,7 +3662,10 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
 
         /* Create a new generator that owns the ready to run frame
          * and return that as the value. */
-        return PyGen_New(f);
+	pyr_grant_critical_state_write();
+	PyObject *g = PyGen_New(f);
+	pyr_revoke_critical_state_write();
+        return g;
     }
 
     retval = PyEval_EvalFrameEx(f,0);
@@ -3658,7 +3679,9 @@ fail: /* Jump here from prelude on failure */
     */
     assert(tstate != NULL);
     ++tstate->recursion_depth;
+    pyr_grant_critical_state_write();
     Py_DECREF(f);
+    pyr_revoke_critical_state_write();
     --tstate->recursion_depth;
     return retval;
 }
@@ -4392,8 +4415,6 @@ call_function(PyObject ***pp_stack, int oparg
     PyObject **pfunc = (*pp_stack) - n - 1;
     PyObject *func = *pfunc;
     PyObject *x, *w;
-
-    printf("[%s] Is func in interpdom? %s\n", __func__, (pyr_is_critical_state(func) ? "yes" : "no"));
     
     /* Always dispatch PyCFunction first, because these are
        presumed to be the most frequent callable object.
@@ -4421,11 +4442,15 @@ call_function(PyObject ***pp_stack, int oparg
         }
         else {
             PyObject *callargs;
+	    pyr_grant_critical_state_write();
             callargs = load_args(pp_stack, na);
+	    pyr_revoke_critical_state_write();
             READ_TIMESTAMP(*pintr0);
             C_TRACE(x, PyCFunction_Call(func,callargs,NULL));
             READ_TIMESTAMP(*pintr1);
+	    pyr_grant_critical_state_write();
             Py_XDECREF(callargs);
+	    pyr_revoke_critical_state_write();
         }
     } else {
         if (PyMethod_Check(func) && PyMethod_GET_SELF(func) != NULL) {
@@ -4456,7 +4481,9 @@ call_function(PyObject ***pp_stack, int oparg
      */
     while ((*pp_stack) > pfunc) {
         w = EXT_POP(*pp_stack);
+	pyr_grant_critical_state_write();
         Py_DECREF(w);
+	pyr_revoke_critical_state_write();
         PCALL(PCALL_POP);
     }
     return x;
@@ -4514,7 +4541,9 @@ fast_function(PyObject *func, PyObject ***pp_stack, int n, int na, int nk)
         pyr_revoke_critical_state_write();
         retval = PyEval_EvalFrameEx(f,0);
         ++tstate->recursion_depth;
+	pyr_grant_critical_state_write();
         Py_DECREF(f);
+	pyr_revoke_critical_state_write();
         --tstate->recursion_depth;
         return retval;
     }
@@ -4557,7 +4586,9 @@ update_keyword_args(PyObject *orig_kwdict, int nk, PyObject ***pp_stack,
             Py_DECREF(kwdict);
             return NULL;
         }
+	pyr_grant_critical_state_write();
         err = PyDict_SetItem(kwdict, key, value);
+	pyr_revoke_critical_state_write();
         Py_DECREF(key);
         Py_DECREF(value);
         if (err) {
@@ -4647,7 +4678,9 @@ do_call(PyObject *func, PyObject ***pp_stack, int na, int nk)
         result = PyObject_Call(func, callargs, kwdict);
  call_fail:
     Py_XDECREF(callargs);
+    pyr_grant_critical_state_write();
     Py_XDECREF(kwdict);
+    pyr_revoke_critical_state_write();
     return result;
 }
 
@@ -5357,6 +5390,9 @@ static inline char *get_module_name(PyFrameObject *f) {
  * callstack request.
  */
 pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
+  PyGILState_STATE gstate;
+  gstate = PyGILState_Ensure();
+  
   PyFrameObject *cur_frame = PyEval_GetFrame();
   pyr_cg_node_t *child = NULL;
   int err = -1;
@@ -5375,18 +5411,20 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
     if (child && strncmp(mod_name, child->lib, strlen(mod_name))) {
       err = pyr_new_cg_node(&next, mod_name, CAM_DATA, child);
       if (err) {
-        printf("[%s] Could not create cg node for lib %s\n", __func__, mod_name);
+        pyrlog("[%s] Could not create cg node for lib %s\n", __func__, mod_name);
         goto fail;
       }
-      printf("[%s] Added cg node for module %s\n", __func__, mod_name);
+      pyrlog("[%s] Added cg node for module %s\n", __func__, mod_name);
       child = next;
     }
     cur_frame = cur_frame->f_back;
   }
 
+  PyGILState_Release(gstate);
   return child;
  fail:
   if (child)
     pyr_free_callgraph(&child);
+  PyGILState_Release(gstate);
   return NULL;
 }
