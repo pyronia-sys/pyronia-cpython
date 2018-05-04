@@ -17,6 +17,7 @@
 #include "opcode.h"
 #include "setobject.h"
 #include "structmember.h"
+#include "monitor.h"
 
 #include <ctype.h>
 
@@ -774,6 +775,7 @@ static int _Py_TracingPossible = 0;
 PyObject *
 PyEval_EvalCode(PyObject *co, PyObject *globals, PyObject *locals)
 {
+
     return PyEval_EvalCodeEx(co,
                       globals, locals,
                       (PyObject **)NULL, 0,
@@ -4612,6 +4614,22 @@ PyEval_GetFuncName(PyObject *func)
 }
 
 const char *
+PyEval_GetModuleName(PyObject *func)
+{
+    if (PyMethod_Check(func))
+        return PyEval_GetModuleName(PyMethod_GET_FUNCTION(func));
+    else if (PyFunction_Check(func))
+        return _PyUnicode_AsString(PyFunction_GET_MODULE(func));
+    else if (PyCFunction_Check(func)) {
+        if (((PyCFunctionObject *)func)->m_module == NULL)
+            return "NULL";
+        return _PyUnicode_AsString(((PyCFunctionObject *)func)->m_module);
+    }
+    else
+        return func->ob_type->tp_name;
+}
+
+const char *
 PyEval_GetFuncDesc(PyObject *func)
 {
     if (PyMethod_Check(func))
@@ -4668,7 +4686,7 @@ if (tstate->use_tracing && tstate->c_profilefunc) { \
     } \
 } else { \
     x = call; \
-    }
+ }
 
 static PyObject *
 call_function(PyObject ***pp_stack, int oparg

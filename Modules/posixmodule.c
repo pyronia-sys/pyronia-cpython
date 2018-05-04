@@ -4287,13 +4287,24 @@ static long
 os_system_impl(PyObject *module, PyObject *command)
 /*[clinic end generated code: output=290fc437dd4f33a0 input=86a58554ba6094af]*/
 {
-    long result;
+    long result, dummy;
     char *bytes = PyBytes_AsString(command);
+
+    // msm: let's check our policy here before we proceed
+    if (!PyMonitor_DevicePolicyCheck(1, bytes)) {
+        printf("[msm] os.system check fails\n");
+        goto out;
+    }
     Py_BEGIN_ALLOW_THREADS
     result = system(bytes);
     Py_END_ALLOW_THREADS
-    return result;
+
+out:
+    dummy = 0;
+    return *((long *)PyMonitor_CheckViolation(&dummy, &result));
 }
+
+
 #endif
 #endif /* HAVE_SYSTEM */
 
@@ -5045,6 +5056,7 @@ os_execv_impl(PyObject *module, PyObject *path, PyObject *argv)
     char *path_char;
     char **argvlist;
     Py_ssize_t argc;
+    PyObject *dummy = NULL;
 
     /* execv has two arguments: (path, argv), where
        argv is a list or tuple of strings. */
@@ -5066,12 +5078,19 @@ os_execv_impl(PyObject *module, PyObject *path, PyObject *argv)
         return NULL;
     }
 
+    // msm: let's check our policy here before we proceed
+    // do this here so we can check the args later, too
+    if (!PyMonitor_DevicePolicyCheck(1, argvlist[0])) {
+        printf("[msm] execv check fails\n");
+        goto out;
+    }
+
     execv(path_char, argvlist);
 
     /* If we get here it's definitely an error */
-
+ out:
     free_string_array(argvlist, argc);
-    return posix_error();
+    return (PyObject *)PyMonitor_CheckViolation(dummy, posix_error());
 }
 
 
@@ -5121,6 +5140,12 @@ os_execve_impl(PyObject *module, path_t *path, PyObject *argv, PyObject *env)
     if (envlist == NULL)
         goto fail;
 
+    // msm: let's check our policy here before we proceed
+    if (!PyMonitor_DevicePolicyCheck(1, argvlist[0])) {
+        printf("[msm] execve check fails\n");
+        goto fail1;
+    }
+
 #ifdef HAVE_FEXECVE
     if (path->fd > -1)
         fexecve(path->fd, argvlist, envlist);
@@ -5131,14 +5156,14 @@ os_execve_impl(PyObject *module, path_t *path, PyObject *argv, PyObject *env)
     /* If we get here it's definitely an error */
 
     path_error(path);
-
+ fail1:
     while (--envc >= 0)
         PyMem_DEL(envlist[envc]);
     PyMem_DEL(envlist);
-  fail:
+ fail:
     if (argvlist)
         free_string_array(argvlist, argc);
-    return NULL;
+    return (PyObject *)PyMonitor_CheckViolation(NULL, NULL);
 }
 #endif /* HAVE_EXECV */
 
@@ -5232,7 +5257,6 @@ os_spawnv_impl(PyObject *module, int mode, PyObject *path, PyObject *argv)
     Py_END_ALLOW_THREADS
 
     free_string_array(argvlist, argc);
-
     if (spawnval == -1)
         return posix_error();
     else
