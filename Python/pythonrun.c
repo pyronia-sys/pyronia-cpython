@@ -86,7 +86,6 @@ int _Py_QnewFlag = 0;
 int Py_NoUserSiteDirectory = 0; /* for -s and site.py */
 int Py_HashRandomizationFlag = 0; /* for -R and PYTHONHASHSEED */
 
-
 /* Hack to force loading of object files */
 int (*_PyOS_mystrnicmp_hack)(const char *, const char *, Py_ssize_t) = \
     PyOS_mystrnicmp; /* Python/pystrcmp.o */
@@ -206,7 +205,8 @@ Py_InitializeEx(int install_sigs)
 
     // Pyronia hook: initialize memdom subsystem and open
     // stack inspection communication channel
-    if ((err = pyr_init(LIB_POLICY, Py_Generate_Pyronia_Callstack)))
+    if ((err = pyr_init(Pyr_MainMod, LIB_POLICY,
+			Py_Generate_Pyronia_Callstack)))
       Py_FatalError("Pyronia init failed");
 
     printf("done initializing pyronia\n");

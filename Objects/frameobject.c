@@ -489,17 +489,21 @@ frame_dealloc(PyFrameObject *f)
 
     co = f->f_code;
     if (co->co_zombieframe == NULL) {
-        printf("[%s] zombieframe \n", __func__);
+        pyrlog("[%s] zombieframe \n", __func__);
         co->co_zombieframe = f;
     }
     else if (numfree < PyFrame_MAXFREELIST) {
-      printf("[%s] add to free list \n", __func__);
+        pyrlog("[%s] add to free list \n", __func__);
         ++numfree;
         f->f_back = free_list;
         free_list = f;
     }
-    else
-        PyObject_GC_SecureDel(f);
+    else {
+      if (pyr_is_interpreter_build())
+        PyObject_GC_Del(f);
+      else
+	PyObject_GC_SecureDel(f);
+    }
 
     Py_DECREF(co);
     pyr_revoke_critical_state_write();
@@ -705,7 +709,11 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
             nfrees;
         if (free_list == NULL) {
 	    pyrlog("[%s] new frame alloc\n", __func__);
-            f = PyObject_GC_NewSecureVar(PyFrameObject, &PyFrame_Type,
+	    if (pyr_is_interpreter_build())
+	      f = PyObject_GC_NewVar(PyFrameObject, &PyFrame_Type,
+					   extras);
+	    else
+	      f = PyObject_GC_NewSecureVar(PyFrameObject, &PyFrame_Type,
             extras);
             if (f == NULL) {
                 Py_DECREF(builtins);
@@ -769,7 +777,7 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
     f->f_iblock = 0;
 
     name_obj = PyDict_GetItemString(f->f_globals, "__name__");
-    if (PyString_Check(name_obj))
+    if (name_obj && PyString_Check(name_obj))
       module_name = PyString_AsString(name_obj);
     
     pyrlog("[%s] Allocated frame at %p for module: %s\n", __func__, f, module_name);
@@ -1000,7 +1008,10 @@ PyFrame_ClearFreeList(void)
     while (free_list != NULL) {
         PyFrameObject *f = free_list;
         free_list = free_list->f_back;
-        PyObject_GC_SecureDel(f);
+	if (pyr_is_interpreter_build())
+	  PyObject_GC_Del(f);
+	else
+	  PyObject_GC_SecureDel(f);
         --numfree;
     }
     assert(numfree == 0);

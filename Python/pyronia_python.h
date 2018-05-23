@@ -12,7 +12,7 @@
 
 #define LIB_POLICY "/home/pyronia/cpython/home.pyronia.cpython.pyronia_build.python-lib.prof"
 
-#define PYR_LOGGING 1
+#define PYR_LOGGING 0
 #define pyrlog(format, ...) { \
     if (PYR_LOGGING) { \
       fprintf(stdout, "[pyronia] " format, ##__VA_ARGS__); \

@@ -548,6 +548,7 @@ Py_Main(int argc, char **argv)
 #else
     Py_SetProgramName(argv[0]);
 #endif
+    Pyr_MainMod = (module == NULL ? filename : module);
     Py_Initialize();
 
     if (Py_VerboseFlag ||

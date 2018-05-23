@@ -1,4 +1,5 @@
 /home/pyronia/cpython/pyronia_build** rw,
+/home/pyronia/cpython/pyronia_build/pybuilddir.txt r,
 /home/pyronia/cpython/setup.py r,
 /usr/include** r,
 /usr/bin/gcc-5 ux,
@@ -18,6 +19,7 @@
 /home/pyronia/cpython/Tools/scripts/* r,
 /home/ r,
 /usr/local/include/ r,
+/home/pyronia/cpython/pyronia_build/build/scripts-2.7 rw,
 
 profile /bin/dash {
         /lib/x86_64-linux-gnu/libc-2.23.so rm,

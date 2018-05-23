@@ -16,7 +16,6 @@
 /usr/local/lib/python2.7/ r,
 /home/pyronia/cpython/Lib** rw,
 /usr/local/lib/python2.7/site-packages/ r,
-/home/pyronia/cpython/pyronia_build/pybuilddir.txt r,
 /usr/local/lib r,
 
 /home/pyronia/cpython/home.pyronia.cpython.pyronia_build.python-lib.prof r,
