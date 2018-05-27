@@ -24,7 +24,15 @@ PyCFunction_NewEx(PyMethodDef *ml, PyObject *self, PyObject *module)
         numfree--;
     }
     else {
-        op = PyObject_GC_New(PyCFunctionObject, &PyCFunction_Type);
+        // Pyronia hook: if this is true, we're in the middle of importing
+        // a non-standard native extension
+        if (_Pyr_NativeExtensionName && _Pyr_Is_NonStdNativeExtension) {
+	  op = PyObject_GC_NewIsolatedNative(PyCFunctionObject,
+					     &PyCFunction_Type,
+					     _Py_NativeExtensionName);
+	}
+	else
+	  op = PyObject_GC_New(PyCFunctionObject, &PyCFunction_Type);
         if (op == NULL)
             return NULL;
     }

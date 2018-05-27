@@ -11,6 +11,10 @@ static PyObject *va_build_value(const char *, va_list, int);
 /* Package context -- the full module name for package imports */
 char *_Py_PackageContext = NULL;
 
+/* Pyronia context for native extension imports */
+int _Pyr_Is_NonStdNativeExtension = 0;
+char *_Pyr_NativeExtensionName = NULL;
+
 /* Py_InitModule4() parameters:
    - name is the module name
    - methods is the list of top-level functions

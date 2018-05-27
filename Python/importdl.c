@@ -11,6 +11,7 @@
 #ifdef HAVE_DYNAMIC_LOADING
 
 #include "importdl.h"
+#include "pyronia_python.h"
 
 extern dl_funcptr _PyImport_GetDynLoadFunc(const char *name,
                                            const char *shortname,
@@ -50,8 +51,21 @@ _PyImport_LoadDynamicModule(char *name, char *pathname, FILE *fp)
     }
     oldcontext = _Py_PackageContext;
     _Py_PackageContext = packagecontext;
+    /* Pyroia hooks: signal to the module constructor
+     * whether this is a non-standard native extension */
+    if (pyr_is_interpreter_build() || strncmp(pathname, STDLIBPATH, strlen(STDLIBPATH))) {
+      _Pyr_Is_NonStdNativeExtension = 0;
+      _Pyr_NativeExtensionName = NULL;
+    }
+    else {
+      _Pyr_Is_NonStdNativeExtension = 1;
+      _Pyr_NativeExtensionName = name;
+    }
     (*p)();
     _Py_PackageContext = oldcontext;
+    // reset Pyronia native import context
+    _Pyr_Is_NonStdNativeExtension = 0;
+    _Pyr_NativeExtensionName = NULL;
     if (PyErr_Occurred())
         return NULL;
 

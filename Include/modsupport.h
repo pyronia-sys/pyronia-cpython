@@ -127,7 +127,9 @@ PyAPI_FUNC(PyObject *) Py_InitModule4(const char *name, PyMethodDef *methods,
 		       PYTHON_API_VERSION)
 
 PyAPI_DATA(char *) _Py_PackageContext;
-
+int _Pyr_Is_NonStdNativeExtension;
+char *_Pyr_NativeExtensionName;
+  
 #ifdef __cplusplus
 }
 #endif
