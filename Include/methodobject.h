@@ -32,6 +32,8 @@ PyAPI_FUNC(int) PyCFunction_GetFlags(PyObject *);
 	(((PyCFunctionObject *)func) -> m_self)
 #define PyCFunction_GET_FLAGS(func) \
 	(((PyCFunctionObject *)func) -> m_ml -> ml_flags)
+#define PyCFunction_GET_NAME(func) \
+        (((PyCFunctionObject *)func) -> m_name)
 PyAPI_FUNC(PyObject *) PyCFunction_Call(PyObject *, PyObject *, PyObject *);
 
 struct PyMethodDef {
@@ -83,6 +85,7 @@ typedef struct {
     PyMethodDef *m_ml; /* Description of the C function to call */
     PyObject    *m_self; /* Passed as 'self' arg to the C func, can be NULL */
     PyObject    *m_module; /* The __module__ attribute, can be anything */
+    char *m_name; /* Pyronia hook: the library name used to identify the isolated compartment */
 } PyCFunctionObject;
 
 PyAPI_FUNC(int) PyCFunction_ClearFreeList(void);

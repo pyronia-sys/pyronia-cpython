@@ -4,6 +4,8 @@
 #include "Python.h"
 #include "structmember.h"
 
+#include <pyronia_lib.h>
+
 /* Free list for method objects to safe malloc/free overhead
  * The m_self element is used to chain the objects.
  */
@@ -29,7 +31,11 @@ PyCFunction_NewEx(PyMethodDef *ml, PyObject *self, PyObject *module)
         if (_Pyr_NativeExtensionName && _Pyr_Is_NonStdNativeExtension) {
 	  op = PyObject_GC_NewIsolatedNative(PyCFunctionObject,
 					     &PyCFunction_Type,
-					     _Py_NativeExtensionName);
+					     _Pyr_NativeExtensionName);
+	  op->m_name = py_alloc_in_native_compartment(_Pyr_NativeExtensionName,
+						      strlen(_Pyr_NativeExtensionName));
+	  memcpy(op->m_name, _Pyr_NativeExtensionName,
+		 strlen(_Pyr_NativeExtensionName));
 	}
 	else
 	  op = PyObject_GC_New(PyCFunctionObject, &PyCFunction_Type);
@@ -81,21 +87,26 @@ PyCFunction_Call(PyObject *func, PyObject *arg, PyObject *kw)
     PyCFunctionObject* f = (PyCFunctionObject*)func;
     PyCFunction meth = PyCFunction_GET_FUNCTION(func);
     PyObject *self = PyCFunction_GET_SELF(func);
+    char *libname = PyCFunction_GET_NAME(func);
     Py_ssize_t size;
 
     switch (PyCFunction_GET_FLAGS(func) & ~(METH_CLASS | METH_STATIC | METH_COEXIST)) {
     case METH_VARARGS:
         if (kw == NULL || PyDict_Size(kw) == 0)
-            return (*meth)(self, arg);
+	  return pyr_run_native_func_isolated_python(libname, meth,
+						     self, arg, NULL);
         break;
     case METH_VARARGS | METH_KEYWORDS:
     case METH_OLDARGS | METH_KEYWORDS:
-        return (*(PyCFunctionWithKeywords)meth)(self, arg, kw);
+        return pyr_run_native_func_isolated_python(libname,
+						   (PyCFunctionWithKeywords)meth,
+						   self, arg, kw);
     case METH_NOARGS:
         if (kw == NULL || PyDict_Size(kw) == 0) {
             size = PyTuple_GET_SIZE(arg);
             if (size == 0)
-                return (*meth)(self, NULL);
+	        return pyr_run_native_func_isolated_python(libname, meth,
+						   self, NULL, NULL);
             PyErr_Format(PyExc_TypeError,
                 "%.200s() takes no arguments (%zd given)",
                 f->m_ml->ml_name, size);
@@ -106,7 +117,10 @@ PyCFunction_Call(PyObject *func, PyObject *arg, PyObject *kw)
         if (kw == NULL || PyDict_Size(kw) == 0) {
             size = PyTuple_GET_SIZE(arg);
             if (size == 1)
-                return (*meth)(self, PyTuple_GET_ITEM(arg, 0));
+	        return pyr_run_native_func_isolated_python(libname,
+							   meth,
+							   self, PyTuple_GET_ITEM(arg, 0),
+							   NULL);
             PyErr_Format(PyExc_TypeError,
                 "%.200s() takes exactly one argument (%zd given)",
                 f->m_ml->ml_name, size);
@@ -121,7 +135,8 @@ PyCFunction_Call(PyObject *func, PyObject *arg, PyObject *kw)
                 arg = PyTuple_GET_ITEM(arg, 0);
             else if (size == 0)
                 arg = NULL;
-            return (*meth)(self, arg);
+	    return pyr_run_native_func_isolated_python(libname, meth,
+						     self, arg, NULL);
         }
         break;
     default:
