@@ -456,7 +456,7 @@ def main():
 
     cflags = ['$(OPT)']
     cppflags = defines + includes
-    libs = [os.path.join(binlib, 'libpython$(VERSION).a')]
+    libs = [os.path.join(binlib, 'libppython$(VERSION).a')]
 
     somevars = {}
     if os.path.exists(makefile_in):
