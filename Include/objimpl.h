@@ -309,10 +309,13 @@ PyAPI_FUNC(PyVarObject *) _PyObject_GC_NewVar(PyTypeObject *, Py_ssize_t);
 PyAPI_FUNC(void) PyObject_GC_Track(void *);
 PyAPI_FUNC(void) PyObject_GC_UnTrack(void *);
 PyAPI_FUNC(void) PyObject_GC_Del(void *);
+PyObject *_PyObject_GC_NewIsolatedNative(PyTypeObject *, char *);
 
 #define PyObject_GC_New(type, typeobj) \
                 ( (type *) _PyObject_GC_New(typeobj) )
-#define PyObject_GC_NewVar(type, typeobj, n) \
+#define PyObject_GC_NewIsolatedNative(type, typeobj, name) \
+  ( (type *) _PyObject_GC_NewIsolatedNative(typeobj, name) )
+#define PyObject_GC_NewVar(type, typeobj, n)				\
                 ( (type *) _PyObject_GC_NewVar((typeobj), (n)) )
 
 

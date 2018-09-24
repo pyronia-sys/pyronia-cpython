@@ -132,7 +132,7 @@ do
   shift
 done
 
-if test "$objfile" = "libpython@VERSION@.so"; then
+if test "$objfile" = "libppython@VERSION@.so"; then
   ldsocoremode="true" 
 fi
 

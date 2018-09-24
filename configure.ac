@@ -763,7 +763,7 @@ AC_SUBST(LIBRARY)
 AC_MSG_CHECKING(LIBRARY)
 if test -z "$LIBRARY"
 then
-	LIBRARY='libpython$(VERSION).a'
+	LIBRARY='libppython$(VERSION).a'
 fi
 AC_MSG_RESULT($LIBRARY)
 
@@ -909,8 +909,8 @@ if test $enable_shared = "yes"; then
 	  INSTSONAME="$LDLIBRARY".$SOVERSION
           ;;
     Linux*|GNU*|NetBSD*|FreeBSD*|DragonFly*|OpenBSD*)
-	  LDLIBRARY='libpython$(VERSION).so'
-	  BLDLIBRARY='-L. -lpython$(VERSION)'
+	  LDLIBRARY='libppython$(VERSION).so'
+	  BLDLIBRARY='-L. -lppython$(VERSION)'
 	  RUNSHARED=LD_LIBRARY_PATH=`pwd`${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 	  case $ac_sys_system in
 	      FreeBSD*)
@@ -942,8 +942,8 @@ if test $enable_shared = "yes"; then
 	  RUNSHARED=DLL_PATH=`pwd`:${DLL_PATH:-/atheos/sys/libs:/atheos/autolnk/lib}
 	  ;;
     Darwin*)
-    	LDLIBRARY='libpython$(VERSION).dylib'
-	BLDLIBRARY='-L. -lpython$(VERSION)'
+    	LDLIBRARY='libppython$(VERSION).dylib'
+	BLDLIBRARY='-L. -lppython$(VERSION)'
 	RUNSHARED=DYLD_LIBRARY_PATH=`pwd`${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}
 	;;
     AIX*)

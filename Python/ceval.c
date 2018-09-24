@@ -4337,12 +4337,17 @@ call_function(PyObject ***pp_stack, int oparg
         if (flags & (METH_NOARGS | METH_O)) {
             PyCFunction meth = PyCFunction_GET_FUNCTION(func);
             PyObject *self = PyCFunction_GET_SELF(func);
+	    char *libname = PyCFunction_GET_NAME(func);
             if (flags & METH_NOARGS && na == 0) {
-                C_TRACE(x, (*meth)(self,NULL));
+	      x = pyr_run_native_func_isolated_python(libname,
+						      meth, self, NULL, NULL);
+	      //C_TRACE(x, (*meth)(self,NULL));
             }
             else if (flags & METH_O && na == 1) {
                 PyObject *arg = EXT_POP(*pp_stack);
-                C_TRACE(x, (*meth)(self,arg));
+		x = pyr_run_native_func_isolated_python(libname, meth,
+						      self, arg, NULL);
+                //C_TRACE(x, (*meth)(self,arg));
                 Py_DECREF(arg);
             }
             else {

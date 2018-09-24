@@ -19,7 +19,14 @@ PyModule_New(const char *name)
 {
     PyModuleObject *m;
     PyObject *nameobj;
-    m = PyObject_GC_New(PyModuleObject, &PyModule_Type);
+
+    if (_Pyr_NativeExtensionName && !strcmp(_Pyr_NativeExtensionName, name)
+	&& _Pyr_Is_NonStdNativeExtension) {
+        pyr_isolate_native_lib(name);
+        m = PyObject_GC_NewIsolatedNative(PyModuleObject, &PyModule_Type, name);
+    }
+    else
+        m = PyObject_GC_New(PyModuleObject, &PyModule_Type);
     if (m == NULL)
         return NULL;
     nameobj = PyString_FromString(name);
