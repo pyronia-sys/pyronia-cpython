@@ -5390,13 +5390,15 @@ static inline char *get_module_name(PyFrameObject *f) {
  * callstack request.
  */
 pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
-  PyGILState_STATE gstate;
-  gstate = PyGILState_Ensure();
-  
-  PyFrameObject *cur_frame = PyEval_GetFrame();
   pyr_cg_node_t *child = NULL;
   int err = -1;
+  PyFrameObject *cur_frame = NULL;
 
+  PyThread_acquire_lock(interpreter_lock, 1);
+  cur_frame = PyEval_GetFrame();
+  
+  pyrlog("[%s] Collecting call stack\n", __func__);
+  
   while (cur_frame != NULL) {
     pyr_cg_node_t *next;
 
@@ -5420,11 +5422,11 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
     cur_frame = cur_frame->f_back;
   }
 
-  PyGILState_Release(gstate);
+  PyThread_release_lock(interpreter_lock);
   return child;
  fail:
   if (child)
     pyr_free_callgraph(&child);
-  PyGILState_Release(gstate);
+  PyThread_release_lock(interpreter_lock);
   return NULL;
 }

@@ -463,7 +463,9 @@ Py_Finalize(void)
      * XXX but I'm unclear on exactly how that one happens.  In any case,
      * XXX I haven't seen a real-life report of either of these.
      */
+    pyr_grant_critical_state_write();
     PyGC_Collect();
+    pyr_revoke_critical_state_write();
 #ifdef COUNT_ALLOCS
     /* With COUNT_ALLOCS, it helps to run GC multiple times:
        each collection might release some types from the type
