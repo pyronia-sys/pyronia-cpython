@@ -708,13 +708,18 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
         extras = code->co_stacksize + code->co_nlocals + ncells +
             nfrees;
         if (free_list == NULL) {
+#ifdef Py_PYRONIA
 	    pyrlog("[%s] new frame alloc\n", __func__);
 	    if (pyr_is_interpreter_build())
 	      f = PyObject_GC_NewVar(PyFrameObject, &PyFrame_Type,
 					   extras);
 	    else
 	      f = PyObject_GC_NewSecureVar(PyFrameObject, &PyFrame_Type,
-            extras);
+					   extras);
+#else
+	    f = PyObject_GC_NewVar(PyFrameObject, &PyFrame_Type,
+	    extras);
+#endif
             if (f == NULL) {
                 Py_DECREF(builtins);
                 return NULL;

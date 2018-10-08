@@ -20,6 +20,34 @@
     }\
   }
 
+PyObject *_PyObject_GC_SecureMalloc(size_t);
+PyVarObject *_PyObject_GC_NewSecureVar(PyTypeObject *, Py_ssize_t);
+#define PyObject_GC_NewSecureVar(type, typeobj, n) \
+                ( (type *) _PyObject_GC_NewSecureVar((typeobj), (n)) )
+void PyObject_GC_SecureDel(void *);
+
+// these are wrappers around interp dom write access grant and revokes
+// to enable toggling pyronia on and off (and so we don't need to import pyronia_lib.h directly anywhere but here)
+#ifdef Py_PYRONIA
+#define critical_state_alloc_pre() { \
+    pyr_grant_critical_state_write(); \
+  }
+#else
+#define critical_state_alloc_pre() { \
+    do { } while(0); \
+  }
+#endif
+
+#ifdef Py_PYRONIA
+#define critical_state_alloc_post() { \
+    pyr_revoke_critical_state_write(); \
+  }
+#else
+#define critical_state_alloc_post() { \
+    do { } while(0); \
+  }
+#endif
+
 pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void);
 
 #endif /* __PY_PYRONIA_H */

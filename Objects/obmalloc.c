@@ -1006,6 +1006,7 @@ PyObject_Free(void *p)
     if (p == NULL)      /* free(NULL) has no effect */
         return;
 
+#ifdef Py_PYRONIA
     /* Pyronia allocated this address, so
      * free it with memdom_free and skip the rest
      * of these checks. */
@@ -1013,6 +1014,7 @@ PyObject_Free(void *p)
       pyrlog("[%s] Freed memdom-protected object %p\n", __func__);
       return;
     }
+#endif
 
 #ifdef WITH_VALGRIND
     if (UNLIKELY(running_on_valgrind > 0))
