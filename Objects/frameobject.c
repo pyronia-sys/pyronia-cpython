@@ -9,7 +9,6 @@
 #include "../Python/pyronia_python.h"
 
 #include <stdio.h>
-#include <pyronia_lib.h>
 
 #undef MIN
 #undef MAX
@@ -59,10 +58,10 @@ WARN_GET_SET(f_exc_value)
 static PyObject *
 frame_getlocals(PyFrameObject *f, void *closure)
 {
-    pyr_grant_critical_state_write();
+    critical_state_alloc_pre();
     PyFrame_FastToLocals(f);
     Py_INCREF(f->f_locals);
-    pyr_revoke_critical_state_write();
+    critical_state_alloc_post();
     return f->f_locals;
 }
 
@@ -122,7 +121,7 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
     unsigned char setup_op = 0;         /* (ditto) */
     int err = -1;
 
-     pyr_grant_critical_state_write();
+     critical_state_alloc_pre();
 
     /* f_lineno must be an integer. */
     if (!PyInt_Check(p_new_lineno)) {
@@ -356,7 +355,7 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
     f->f_lasti = new_lasti;
     err = 0;
  out:
-    pyr_revoke_critical_state_write();
+    critical_state_alloc_post();
     return err;
 }
 
@@ -374,7 +373,7 @@ frame_gettrace(PyFrameObject *f, void *closure)
 static int
 frame_settrace(PyFrameObject *f, PyObject* v, void *closure)
 {
-    pyr_grant_critical_state_write();
+    critical_state_alloc_pre();
     /* We rely on f_lineno being accurate when f_trace is set. */
     f->f_lineno = PyFrame_GetLineNumber(f);
 
@@ -382,7 +381,7 @@ frame_settrace(PyFrameObject *f, PyObject* v, void *closure)
         v = NULL;
     Py_XINCREF(v);
     Py_XSETREF(f->f_trace, v);
-    pyr_revoke_critical_state_write();
+    critical_state_alloc_post();
 
     return 0;
 }
@@ -464,7 +463,7 @@ frame_dealloc(PyFrameObject *f)
 
     pyrlog("[%s] frame at %p\n", __func__, f);
     
-    pyr_grant_critical_state_write();
+    critical_state_alloc_pre();
     PyObject_GC_UnTrack(f);
     Py_TRASHCAN_SAFE_BEGIN(f)
     /* Kill all local variables */
@@ -499,14 +498,19 @@ frame_dealloc(PyFrameObject *f)
         free_list = f;
     }
     else {
-      if (pyr_is_interpreter_build())
+#ifdef Py_PYRONIA
+        pyrlog("[%s] new frame alloc\n", __func__);
+        if (pyr_is_interpreter_build())
+            PyObject_GC_Del(f);
+        else
+            PyObject_GC_SecureDel(f);
+#else
         PyObject_GC_Del(f);
-      else
-	PyObject_GC_SecureDel(f);
+#endif
     }
 
     Py_DECREF(co);
-    pyr_revoke_critical_state_write();
+    critical_state_alloc_post();
     Py_TRASHCAN_SAFE_END(f)
 }
 
@@ -516,7 +520,7 @@ frame_traverse(PyFrameObject *f, visitproc visit, void *arg)
     PyObject **fastlocals, **p;
     int i, slots;
 
-    pyr_grant_critical_state_write();
+    critical_state_alloc_pre();
     Py_VISIT(f->f_back);
     Py_VISIT(f->f_code);
     Py_VISIT(f->f_builtins);
@@ -538,7 +542,7 @@ frame_traverse(PyFrameObject *f, visitproc visit, void *arg)
         for (p = f->f_valuestack; p < f->f_stacktop; p++)
             Py_VISIT(*p);
     }
-    pyr_revoke_critical_state_write();
+    critical_state_alloc_post();
     return 0;
 }
 
@@ -548,7 +552,7 @@ frame_clear(PyFrameObject *f)
     PyObject **fastlocals, **p, **oldtop;
     int i, slots;
 
-    pyr_grant_critical_state_write();
+    critical_state_alloc_pre();
     
     /* Before anything else, make sure that this frame is clearly marked
      * as being defunct!  Else, e.g., a generator reachable from this
@@ -575,7 +579,7 @@ frame_clear(PyFrameObject *f)
             Py_CLEAR(*p);
     }
 
-    pyr_revoke_critical_state_write();
+    critical_state_alloc_post();
 }
 
 static PyObject *

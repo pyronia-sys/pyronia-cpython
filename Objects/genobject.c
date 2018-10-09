@@ -7,7 +7,7 @@
 #include "structmember.h"
 #include "opcode.h"
 
-#include <pyronia_lib.h>
+#include "../Python/pyronia_python.h"
 
 static int
 gen_traverse(PyGenObject *gen, visitproc visit, void *arg)
@@ -73,19 +73,19 @@ gen_send_ex(PyGenObject *gen, PyObject *arg, int exc)
         /* Push arg onto the frame's value stack */
         result = arg ? arg : Py_None;
         Py_INCREF(result);
-        pyr_grant_critical_state_write();
+        critical_state_alloc_pre();
         *(f->f_stacktop++) = result;
-        pyr_revoke_critical_state_write();
+        critical_state_alloc_post();
     }
 
     /* Generators always return to their most recent caller, not
      * necessarily their creator. */
-    pyr_grant_critical_state_write();
+    critical_state_alloc_pre();
     f->f_tstate = tstate;
     Py_XINCREF(tstate->frame);
     assert(f->f_back == NULL);
     f->f_back = tstate->frame;
-    pyr_revoke_critical_state_write();
+    critical_state_alloc_post();
 
     gen->gi_running = 1;
     result = PyEval_EvalFrameEx(f, exc);
@@ -94,12 +94,12 @@ gen_send_ex(PyGenObject *gen, PyObject *arg, int exc)
     /* Don't keep the reference to f_back any longer than necessary.  It
      * may keep a chain of frames alive or it could create a reference
      * cycle. */
-    pyr_grant_critical_state_write();
+    critical_state_alloc_pre();
     assert(f->f_back == tstate->frame);
     Py_CLEAR(f->f_back);
     /* Clear the borrowed reference to the thread state */
     f->f_tstate = NULL;
-    pyr_revoke_critical_state_write();
+    critical_state_alloc_post();
 
     /* If the generator just returned (as opposed to yielding), signal
      * that the generator is exhausted. */

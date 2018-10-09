@@ -21,7 +21,7 @@
 #include "Python.h"
 #include "frameobject.h"        /* for PyFrame_ClearFreeList */
 
-#include "python_pyronia.h"
+#include "../Python/python_pyronia.h"
 
 /* Get an object's GC head */
 #define AS_GC(o) ((PyGC_Head *)(o)-1)
@@ -1556,7 +1556,7 @@ PyVarObject *
 _PyObject_GC_NewVar(PyTypeObject *tp, Py_ssize_t nitems)
 {
     const size_t size = _PyObject_VAR_SIZE(tp, nitems);
-    PyVarObject *op = (PyVarObject *) _PyObject_GC_Malloc(size);    
+    PyVarObject *op = (PyVarObject *) _PyObject_GC_Malloc(size);
     if (op != NULL)
         op = PyObject_INIT_VAR(op, tp, nitems);
     return op;
@@ -1566,7 +1566,7 @@ PyVarObject *
 _PyObject_GC_NewSecureVar(PyTypeObject *tp, Py_ssize_t nitems)
 {
     const size_t size = _PyObject_VAR_SIZE(tp, nitems);
-
+    PyVarObject *op = (PyVarObject *)_PyObject_GC_SecureMalloc(size);
     if (op != NULL)
         op = PyObject_INIT_VAR(op, tp, nitems);
     return op;

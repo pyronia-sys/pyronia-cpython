@@ -1,6 +1,7 @@
 #include "Python.h"
 #include "code.h"
 #include "structmember.h"
+#include "../Python/pyronia_python.h"
 
 #define NAME_CHARS \
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"

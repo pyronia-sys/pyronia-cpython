@@ -764,7 +764,7 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
     (*Py_TYPE(op)->tp_dealloc)((PyObject *)(op)))
 #endif /* !Py_TRACE_REFS */
 
-#include <pyronia_lib.h>
+#include "../Python/pyronia_python.h"
   
 #define Py_INCREF(op) (				\
     _Py_INC_REFTOTAL  _Py_REF_DEBUG_COMMA	\
@@ -817,12 +817,16 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
     do {                                        \
         if (op) {                               \
             PyObject *_py_tmp = (PyObject *)(op);               \
+    #ifdef Py_PYRONIA
 	    int is_crit = pyr_is_critical_state(op);		\
 	    if (is_crit)					\
 	      pyr_grant_critical_state_write();			\
+    #endif
             (op) = NULL;					\
+    #ifdef Py_PYRONIA
 	    if (is_crit)					\
-	      pyr_revoke_critical_state_write();		\
+	      critical_state_alloc_post();		\
+    #endif
             Py_DECREF(_py_tmp);					\
         }                                       \
     } while (0)
@@ -853,24 +857,32 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
 #define Py_SETREF(op, op2)                      \
     do {                                        \
         PyObject *_py_tmp = (PyObject *)(op);   \
-	int is_crit = pyr_is_critical_state(op);		\
+#ifdef Py_PYRONIA
+        int is_crit = pyr_is_critical_state(op);		\
 	if (is_crit)						\
 	  pyr_grant_critical_state_write();			\
+#endif
         (op) = (op2);                           \
+#ifdef Py_PYRONIA
 	if (is_crit)						\
-	  pyr_revoke_critical_state_write();			\
+	  critical_state_alloc_post();			\
+#endif
         Py_DECREF(_py_tmp);                     \
     } while (0)
 
 #define Py_XSETREF(op, op2)                     \
     do {                                        \
         PyObject *_py_tmp = (PyObject *)(op);   \
-	int is_crit = pyr_is_critical_state(op);		\
+#ifdef Py_PYRONIA
+          int is_crit = pyr_is_critical_state(op);		\
 	if (is_crit)						\
 	  pyr_grant_critical_state_write();			\
+#endif
         (op) = (op2);                           \
+#ifdef Py_PYRONIA
 	if (is_crit)						\
-	  pyr_revoke_critical_state_write();			\
+	  critical_state_alloc_post();			\
+#endif
         Py_XDECREF(_py_tmp);                    \
     } while (0)
 
