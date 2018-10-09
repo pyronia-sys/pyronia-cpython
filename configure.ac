@@ -1036,7 +1036,7 @@ else AC_MSG_RESULT(no); Py_DEBUG='false'
 fi],
 [AC_MSG_RESULT(no)])
 
-# Check for --with-pydebug
+# Check for --with-pyronia
 AC_MSG_CHECKING(for --with-pyronia)
 AC_ARG_WITH(pyronia, 
             AS_HELP_STRING([--with-pyronia], [build with Py_PYRONIA defined]),

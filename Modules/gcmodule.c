@@ -21,7 +21,7 @@
 #include "Python.h"
 #include "frameobject.h"        /* for PyFrame_ClearFreeList */
 
-#include "../Python/python_pyronia.h"
+#include "../Python/pyronia_python.h"
 
 /* Get an object's GC head */
 #define AS_GC(o) ((PyGC_Head *)(o)-1)
@@ -216,6 +216,10 @@ GC_TENTATIVELY_UNREACHABLE
 #define IS_REACHABLE(o) ((AS_GC(o))->gc.gc_refs == GC_REACHABLE)
 #define IS_TENTATIVELY_UNREACHABLE(o) ( \
     (AS_GC(o))->gc.gc_refs == GC_TENTATIVELY_UNREACHABLE)
+
+#ifndef Py_PYRONIA
+size_t total_frame_alloc = 0;
+#endif
 
 /*** list functions ***/
 
@@ -1556,6 +1560,10 @@ PyVarObject *
 _PyObject_GC_NewVar(PyTypeObject *tp, Py_ssize_t nitems)
 {
     const size_t size = _PyObject_VAR_SIZE(tp, nitems);
+#ifndef Py_PYRONIA
+    if (tp == &PyFrame_Type)
+      total_frame_alloc += (size + sizeof(PyGC_Head));
+#endif
     PyVarObject *op = (PyVarObject *) _PyObject_GC_Malloc(size);
     if (op != NULL)
         op = PyObject_INIT_VAR(op, tp, nitems);

@@ -1,8 +1,6 @@
 
 /* Python interpreter top-level routines, including init/exit */
 
-#include <pyronia_lib.h>
-
 #include "Python.h"
 
 #include "Python-ast.h"
@@ -160,6 +158,8 @@ isatty_no_error(PyObject *sys_stream)
     return 0;
 }
 
+  extern size_t total_frame_alloc;
+  
 void
 Py_InitializeEx(int install_sigs)
 {
@@ -203,6 +203,7 @@ Py_InitializeEx(int install_sigs)
 
     _PyRandom_Init();
 
+#ifdef Py_PYRONIA
     // Pyronia hook: initialize memdom subsystem and open
     // stack inspection communication channel
     if ((err = pyr_init(Pyr_MainMod, LIB_POLICY,
@@ -210,6 +211,7 @@ Py_InitializeEx(int install_sigs)
       Py_FatalError("Pyronia init failed");
 
     printf("done initializing pyronia\n");
+#endif
     
     interp = PyInterpreterState_New();
     if (interp == NULL)
@@ -578,9 +580,13 @@ Py_Finalize(void)
         _PyObject_DebugMallocStats();
 #endif
 
+#ifdef Py_PYRONIA
     // Pyronia hook: Clean up all Pyronia-related
     // secure state, SI comm and memdoms
     pyr_exit();
+#else
+    printf("[%s] Total frame allocations: %lu bytes\n", __func__, total_frame_alloc);
+#endif
 
     call_ll_exitfuncs();
 }
