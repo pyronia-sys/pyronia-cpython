@@ -467,7 +467,6 @@ Py_Finalize(void)
      */
     critical_state_alloc_pre();
     PyGC_Collect();
-    critical_state_alloc_post();
 #ifdef COUNT_ALLOCS
     /* With COUNT_ALLOCS, it helps to run GC multiple times:
        each collection might release some types from the type
@@ -478,6 +477,7 @@ Py_Finalize(void)
 
     /* Destroy all modules */
     PyImport_Cleanup();
+    critical_state_alloc_post();
 
     /* Collect final garbage.  This disposes of cycles created by
      * new-style class definitions, for example.

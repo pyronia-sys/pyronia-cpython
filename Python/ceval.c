@@ -1272,7 +1272,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         TARGET(STORE_FAST)
         {
             v = POP();
+	    critical_state_alloc_pre();
             SETLOCAL(oparg, v);
+	    critical_state_alloc_post();
             FAST_DISPATCH();
         }
 
@@ -1572,9 +1574,12 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 else
                     goto slow_get;
             }
-            else
+            else {
               slow_get:
-                x = PyObject_GetItem(v, w);
+	        critical_state_alloc_pre();
+	        x = PyObject_GetItem(v, w);
+		critical_state_alloc_post();
+	    }
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
@@ -2265,7 +2270,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                     Py_INCREF(w);
                     PUSH(w);
                 }
+		critical_state_alloc_pre();
                 Py_DECREF(v);
+		critical_state_alloc_post();
                 DISPATCH();
             } else if (PyList_CheckExact(v) &&
                        PyList_GET_SIZE(v) == oparg) {
@@ -2294,9 +2301,11 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             v = TOP();
             u = SECOND();
             STACKADJ(-2);
-            err = PyObject_SetAttr(v, w, u); /* v.w = u */
+	    critical_state_alloc_pre();
+	    err = PyObject_SetAttr(v, w, u); /* v.w = u */
             Py_DECREF(v);
             Py_DECREF(u);
+	    critical_state_alloc_post();
             if (err == 0) DISPATCH();
             break;
         }
@@ -2305,9 +2314,11 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         {
             w = GETITEM(names, oparg);
             v = POP();
+	    critical_state_alloc_pre();
             err = PyObject_SetAttr(v, w, (PyObject *)NULL);
                                             /* del v.w */
             Py_DECREF(v);
+	    critical_state_alloc_post();
             break;
         }
 
@@ -2627,7 +2638,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             else {
               slow_compare:
-                x = cmp_outcome(oparg, v, w);
+	        critical_state_alloc_pre();
+		x = cmp_outcome(oparg, v, w);
+		critical_state_alloc_post();
             }
             Py_DECREF(v);
             Py_DECREF(w);
@@ -2856,7 +2869,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         {
             /* before: [obj]; after [getiter(obj)] */
             v = TOP();
+	    critical_state_alloc_pre();
             x = PyObject_GetIter(v);
+	    critical_state_alloc_post();
             Py_DECREF(v);
             if (x != NULL) {
                 SET_TOP(x);
@@ -2872,7 +2887,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         {
             /* before: [iter]; after: [iter, iter()] *or* [] */
             v = TOP();
+	    critical_state_alloc_pre();
             x = (*v->ob_type->tp_iternext)(v);
+	    critical_state_alloc_post();
             if (x != NULL) {
                 PUSH(x);
                 PREDICT(STORE_FAST);
@@ -2887,7 +2904,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             /* iterator ended normally */
             x = v = POP();
+	    critical_state_alloc_pre();
             Py_DECREF(v);
+	    critical_state_alloc_post();
             JUMPBY(oparg);
             DISPATCH();
         }
@@ -3103,8 +3122,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(func);
 
             while (stack_pointer > pfunc) {
-                w = POP();
+	        w = POP();
+		critical_state_alloc_pre();
                 Py_DECREF(w);
+		critical_state_alloc_post();
             }
             PUSH(x);
             if (x != NULL) DISPATCH();
@@ -3326,10 +3347,12 @@ fast_block_end:
                        this for 'finally'. */
                     if (b->b_type == SETUP_EXCEPT ||
                         b->b_type == SETUP_WITH) {
-                        PyErr_NormalizeException(
+		        critical_state_alloc_pre();
+		        PyErr_NormalizeException(
                             &exc, &val, &tb);
                         set_exc_info(tstate,
                                      exc, val, tb);
+			critical_state_alloc_post();
                     }
                     if (tb == NULL) {
                         Py_INCREF(Py_None);
@@ -3483,7 +3506,9 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
             SETLOCAL(i, x);
         }
         if (co->co_flags & CO_VARARGS) {
-            u = PyTuple_New(argcount - n);
+	    critical_state_alloc_pre();
+	    u = PyTuple_New(argcount - n);
+	    critical_state_alloc_post();
             if (u == NULL)
                 goto fail;
             SETLOCAL(co->co_argcount, u);
@@ -3633,10 +3658,12 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
                 }
             }
             if (found == 0) {
-                c = PyCell_New(NULL);
+	        critical_state_alloc_pre();
+	        c = PyCell_New(NULL);
                 if (c == NULL)
                     goto fail;
                 SETLOCAL(co->co_nlocals + i, c);
+		critical_state_alloc_post();
             }
         }
     }
@@ -3828,7 +3855,9 @@ set_exc_info(PyThreadState *tstate,
     /* For b/w compatibility */
     PySys_SetObject("exc_type", type);
     PySys_SetObject("exc_value", value);
+    critical_state_alloc_pre();
     PySys_SetObject("exc_traceback", tb);
+    critical_state_alloc_post();
 }
 
 static void
@@ -4461,7 +4490,9 @@ call_function(PyObject ***pp_stack, int oparg
             Py_INCREF(self);
             func = PyMethod_GET_FUNCTION(func);
             Py_INCREF(func);
+	    critical_state_alloc_pre();
             Py_SETREF(*pfunc, self);
+	    critical_state_alloc_post();
             na++;
             n++;
         } else
@@ -4651,7 +4682,9 @@ do_call(PyObject *func, PyObject ***pp_stack, int na, int nk)
         if (kwdict == NULL)
             goto call_fail;
     }
+    critical_state_alloc_pre();
     callargs = load_args(pp_stack, na);
+    critical_state_alloc_post();
     if (callargs == NULL)
         goto call_fail;
 #ifdef CALL_PROFILE
@@ -4677,8 +4710,8 @@ do_call(PyObject *func, PyObject ***pp_stack, int na, int nk)
     else
         result = PyObject_Call(func, callargs, kwdict);
  call_fail:
-    Py_XDECREF(callargs);
     critical_state_alloc_pre();
+    Py_XDECREF(callargs);
     Py_XDECREF(kwdict);
     critical_state_alloc_post();
     return result;

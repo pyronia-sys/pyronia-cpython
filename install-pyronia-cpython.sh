@@ -5,11 +5,13 @@
 # author: Marcela S. Melara
 
 ulimit -c unlimited
+rm -rf pyronia_build
+rm -f core
 mkdir -p pyronia_build
 
 ./load_python_profile
 
 cd pyronia_build
 
-../configure --with-libs='-lnl-3 -lnl-genl-3 -lsmv -lpyronia'
+../configure --with-libs='-lnl-3 -lnl-genl-3 -lsmv -lpyronia' --with-pyronia
 make

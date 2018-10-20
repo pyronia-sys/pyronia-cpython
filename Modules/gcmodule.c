@@ -1620,7 +1620,9 @@ PyObject_GC_SecureDel(void *op)
 
     // Pyronia hook: free an object with memdom_free
     // if it's been allocated in any memory domain
+    pyr_grant_critical_state_write();
     pyr_free_critical_state(g);
+    pyr_revoke_critical_state_write();
 }
 
 /* for binary compatibility with 2.2 */

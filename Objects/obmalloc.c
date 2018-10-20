@@ -1011,7 +1011,7 @@ PyObject_Free(void *p)
      * free it with memdom_free and skip the rest
      * of these checks. */
     if (pyr_free_critical_state(p)) {
-      pyrlog("[%s] Freed memdom-protected object %p\n", __func__);
+      pyrlog("[%s] Freed memdom-protected object\n", __func__);
       return;
     }
 #endif
