@@ -490,7 +490,9 @@ Py_MakePendingCalls(void)
         /* having released the lock, perform the callback */
         if (func == NULL)
             break;
+	critical_state_alloc_pre();
         r = func(arg);
+	critical_state_alloc_post();
         if (r)
             break;
     }
@@ -1580,7 +1582,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 	        x = PyObject_GetItem(v, w);
 		critical_state_alloc_post();
 	    }
+	    critical_state_alloc_pre();
             Py_DECREF(v);
+	    critical_state_alloc_post();
             Py_DECREF(w);
             SET_TOP(x);
             if (x != NULL) DISPATCH();
@@ -1882,10 +1886,12 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             else
                 v = NULL;
             u = TOP();
+	    critical_state_alloc_pre();
             x = apply_slice(u, v, w);
             Py_DECREF(u);
             Py_XDECREF(v);
             Py_XDECREF(w);
+	    critical_state_alloc_post();
             SET_TOP(x);
             if (x != NULL) DISPATCH();
             break;
@@ -2290,7 +2296,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 /* unpack_iterable() raised an exception */
                 why = WHY_EXCEPTION;
             }
+	    critical_state_alloc_pre();
             Py_DECREF(v);
+	    critical_state_alloc_post();
             break;
         }
 
@@ -2642,8 +2650,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 		x = cmp_outcome(oparg, v, w);
 		critical_state_alloc_post();
             }
+	    critical_state_alloc_pre();
             Py_DECREF(v);
             Py_DECREF(w);
+	    critical_state_alloc_post();
             SET_TOP(x);
             if (x == NULL) break;
             PREDICT(POP_JUMP_IF_FALSE);
@@ -3109,8 +3119,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 Py_INCREF(self);
                 func = PyMethod_GET_FUNCTION(func);
                 Py_INCREF(func);
+		critical_state_alloc_pre();
                 Py_DECREF(*pfunc);
                 *pfunc = self;
+		critical_state_alloc_post();
                 na++;
             } else
                 Py_INCREF(func);
@@ -3322,7 +3334,9 @@ fast_block_end:
 
             while (STACK_LEVEL() > b->b_level) {
                 v = POP();
+		critical_state_alloc_pre();
                 Py_XDECREF(v);
+		critical_state_alloc_post();
             }
             if (b->b_type == SETUP_LOOP && why == WHY_BREAK) {
                 why = WHY_NOT;
@@ -3649,10 +3663,12 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
                 argname = PyString_AS_STRING(
                     PyTuple_GET_ITEM(co->co_varnames, j));
                 if (strcmp(cellname, argname) == 0) {
+		    critical_state_alloc_pre();
                     c = PyCell_New(GETLOCAL(j));
                     if (c == NULL)
                         goto fail;
                     GETLOCAL(co->co_nlocals + i) = c;
+		    critical_state_alloc_post();
                     found = 1;
                     break;
                 }
@@ -5203,8 +5219,11 @@ exec_statement(PyFrameObject *f, PyObject *prog, PyObject *globals,
             "exec: arg 3 must be a mapping or None");
         return -1;
     }
-    if (PyDict_GetItemString(globals, "__builtins__") == NULL)
+    if (PyDict_GetItemString(globals, "__builtins__") == NULL) {
+        critical_state_alloc_pre();
         PyDict_SetItemString(globals, "__builtins__", f->f_builtins);
+	critical_state_alloc_post();
+    }
     if (PyCode_Check(prog)) {
         if (PyCode_GetNumFree((PyCodeObject *)prog) > 0) {
             PyErr_SetString(PyExc_TypeError,

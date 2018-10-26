@@ -736,7 +736,9 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
             free_list = free_list->f_back;
 	    pyrlog("[%s] resize frame\n", __func__);
             if (Py_SIZE(f) < extras) {
-                f = PyObject_GC_Resize(PyFrameObject, f, extras);
+	        PyObject_GC_SecureDel(f);
+                f = PyObject_GC_NewSecureVar(PyFrameObject, &PyFrame_Type,
+					     extras);
                 if (f == NULL) {
                     Py_DECREF(builtins);
                     return NULL;

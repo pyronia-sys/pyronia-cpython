@@ -335,7 +335,9 @@ update_refs(PyGC_Head *containers)
     PyGC_Head *gc = containers->gc.gc_next;
     for (; gc != containers; gc = gc->gc.gc_next) {
         assert(gc->gc.gc_refs == GC_REACHABLE);
+	critical_state_alloc_pre();
         gc->gc.gc_refs = Py_REFCNT(FROM_GC(gc));
+	critical_state_alloc_post();
         /* Python's cyclic gc should never see an incoming refcount
          * of 0:  if something decref'ed to 0, it should have been
          * deallocated immediately at that time.
@@ -474,13 +476,17 @@ move_unreachable(PyGC_Head *young, PyGC_Head *unreachable)
             PyObject *op = FROM_GC(gc);
             traverseproc traverse = Py_TYPE(op)->tp_traverse;
             assert(gc->gc.gc_refs > 0);
+	    critical_state_alloc_pre();
             gc->gc.gc_refs = GC_REACHABLE;
+	    critical_state_alloc_post();
             (void) traverse(op,
                             (visitproc)visit_reachable,
                             (void *)young);
             next = gc->gc.gc_next;
             if (PyTuple_CheckExact(op)) {
+	        critical_state_alloc_pre();
                 _PyTuple_MaybeUntrack(op);
+		critical_state_alloc_post();
             }
         }
         else {
@@ -492,8 +498,10 @@ move_unreachable(PyGC_Head *young, PyGC_Head *unreachable)
              * young if that's so, and we'll see it again.
              */
             next = gc->gc.gc_next;
+	    critical_state_alloc_pre();
             gc_list_move(gc, unreachable);
             gc->gc.gc_refs = GC_TENTATIVELY_UNREACHABLE;
+	    critical_state_alloc_post();
         }
         gc = next;
     }

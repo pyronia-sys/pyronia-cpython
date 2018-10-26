@@ -17,6 +17,7 @@
 /home/pyronia/cpython/Lib** rw,
 /usr/local/lib/python2.7/site-packages/ r,
 /usr/local/lib r,
+/usr/share/zoneinfo/posixrules r,
 
 /home/pyronia/cpython/home.pyronia.cpython.pyronia_build.python-lib.prof r,
 
