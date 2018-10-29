@@ -22,5 +22,5 @@
 /home/pyronia/cpython/home.pyronia.cpython.pyronia_build.python-lib.prof r,
 
 # TODO: replace these with YOUR resource access rules
-#include /home/pyronia/cpython/install.prof
+include /home/pyronia/cpython/install.prof
 }

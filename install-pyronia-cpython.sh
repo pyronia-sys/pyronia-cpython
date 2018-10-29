@@ -13,5 +13,5 @@ mkdir -p pyronia_build
 
 cd pyronia_build
 
-../configure --with-libs='-lnl-3 -lnl-genl-3 -lsmv -lpyronia' --with-pyronia
+../configure --with-libs='-lnl-3 -lnl-genl-3 -lsmv -lpyronia'
 make
