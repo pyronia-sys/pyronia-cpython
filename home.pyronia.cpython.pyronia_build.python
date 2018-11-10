@@ -10,17 +10,26 @@
 /lib/x86_64-linux-gnu/libm-2.23.so rm,
 /lib/x86_64-linux-gnu/libdl-2.23.so rm,
 /lib/x86_64-linux-gnu/libutil-2.23.so rm,
+/lib/x86_64-linux-gnu/libgcc_s.so.1 rm,
 /proc/*/net/psched r,
 /dev/pts/* r,
 /usr/lib/locale/locale-archive r,
 /usr/local/lib/python2.7/ r,
-/home/pyronia/cpython/Lib** rw,
+/home/pyronia/cpython/Lib** rix,
 /usr/local/lib/python2.7/site-packages/ r,
 /usr/local/lib r,
 /usr/share/zoneinfo/posixrules r,
+/proc/*/mounts rix,
+/proc/*/status r,
+/dev/urandom r,
+/dev/ r,
+/usr/lib/x86_64-linux-gnu/* mr,
+/home/pyronia/.local/lib/python2.7/site-packages** mr,
 
 /home/pyronia/cpython/home.pyronia.cpython.pyronia_build.python-lib.prof r,
 
 # TODO: replace these with YOUR resource access rules
-include /home/pyronia/cpython/install.prof
+# include /home/pyronia/libpyronia/testsuite/python-tests/openalpr_test.prof
+# include /home/pyronia/cpython/install.prof
+include /home/pyronia/libpyronia/testsuite/python-tests/twitterPhoto.prof
 }

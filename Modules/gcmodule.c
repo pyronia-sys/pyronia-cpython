@@ -335,9 +335,9 @@ update_refs(PyGC_Head *containers)
     PyGC_Head *gc = containers->gc.gc_next;
     for (; gc != containers; gc = gc->gc.gc_next) {
         assert(gc->gc.gc_refs == GC_REACHABLE);
-	critical_state_alloc_pre();
+	critical_state_alloc_pre(gc->gc.gc_refs);
         gc->gc.gc_refs = Py_REFCNT(FROM_GC(gc));
-	critical_state_alloc_post();
+	critical_state_alloc_post(gc->gc.gc_refs);
         /* Python's cyclic gc should never see an incoming refcount
          * of 0:  if something decref'ed to 0, it should have been
          * deallocated immediately at that time.
@@ -476,17 +476,17 @@ move_unreachable(PyGC_Head *young, PyGC_Head *unreachable)
             PyObject *op = FROM_GC(gc);
             traverseproc traverse = Py_TYPE(op)->tp_traverse;
             assert(gc->gc.gc_refs > 0);
-	    critical_state_alloc_pre();
+	    critical_state_alloc_pre(gc->gc.gc_refs);
             gc->gc.gc_refs = GC_REACHABLE;
-	    critical_state_alloc_post();
+	    critical_state_alloc_post(gc->gc.gc_refs);
             (void) traverse(op,
                             (visitproc)visit_reachable,
                             (void *)young);
             next = gc->gc.gc_next;
             if (PyTuple_CheckExact(op)) {
-	        critical_state_alloc_pre();
+	        critical_state_alloc_pre(op);
                 _PyTuple_MaybeUntrack(op);
-		critical_state_alloc_post();
+		critical_state_alloc_post(op);
             }
         }
         else {
@@ -498,10 +498,10 @@ move_unreachable(PyGC_Head *young, PyGC_Head *unreachable)
              * young if that's so, and we'll see it again.
              */
             next = gc->gc.gc_next;
-	    critical_state_alloc_pre();
+	    critical_state_alloc_pre(gc);
             gc_list_move(gc, unreachable);
             gc->gc.gc_refs = GC_TENTATIVELY_UNREACHABLE;
-	    critical_state_alloc_post();
+	    critical_state_alloc_post(gc);
         }
         gc = next;
     }
@@ -1628,9 +1628,9 @@ PyObject_GC_SecureDel(void *op)
 
     // Pyronia hook: free an object with memdom_free
     // if it's been allocated in any memory domain
-    pyr_grant_critical_state_write();
+    critical_state_alloc_pre(g);
     pyr_free_critical_state(g);
-    pyr_revoke_critical_state_write();
+    critical_state_alloc_post(g);
 }
 
 /* for binary compatibility with 2.2 */

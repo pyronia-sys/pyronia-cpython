@@ -866,10 +866,10 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
             PyObject *_py_tmp = (PyObject *)(op);               \
 	    int is_crit = pyr_is_critical_state(op);		\
 	    if (is_crit)					\
-	      critical_state_alloc_pre();			\
+	      critical_state_alloc_pre(op);			\
             (op) = NULL;					\
 	    if (is_crit)					\
-	      critical_state_alloc_post();			\
+	      critical_state_alloc_post(op);			\
             Py_DECREF(_py_tmp);					\
         }                                       \
     } while (0)
@@ -879,10 +879,10 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
         PyObject *_py_tmp = (PyObject *)(op);   \
         int is_crit = pyr_is_critical_state(op);		\
 	if (is_crit)						\
-	  critical_state_alloc_pre();				\
+	  critical_state_alloc_pre(op);				\
         (op) = (op2);						\
 	if (is_crit)						\
-	  critical_state_alloc_post();				\
+	  critical_state_alloc_post(op);				\
         Py_DECREF(_py_tmp);					\
   } while (0)
 
@@ -891,10 +891,10 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
         PyObject *_py_tmp = (PyObject *)(op);   \
 	int is_crit = pyr_is_critical_state(op);		\
 	if (is_crit)						\
-	  critical_state_alloc_pre();				\
+	  critical_state_alloc_pre(op);				\
 	(op) = (op2);						\
 	if (is_crit)						\
-	  critical_state_alloc_post();				\
+	  critical_state_alloc_post(op);				\
         Py_XDECREF(_py_tmp);					\
     } while (0)
   

@@ -312,9 +312,9 @@ call_trampoline(PyThreadState *tstate, PyObject* callback,
 
     if (args == NULL)
         return NULL;
-    critical_state_alloc_pre();
+    critical_state_alloc_pre(frame);
     Py_INCREF(frame);
-    critical_state_alloc_post();
+    //critical_state_alloc_post();
     whatstr = whatstrings[what];
     Py_INCREF(whatstr);
     if (arg == NULL)
@@ -325,15 +325,15 @@ call_trampoline(PyThreadState *tstate, PyObject* callback,
     PyTuple_SET_ITEM(args, 2, arg);
 
     /* call the Python-level function */
-    critical_state_alloc_pre();
+    //critical_state_alloc_pre(frame);
     PyFrame_FastToLocals(frame);
-    critical_state_alloc_post();
+    critical_state_alloc_post(frame);
     result = PyEval_CallObject(callback, args);
-    critical_state_alloc_pre();
+    critical_state_alloc_pre(frame);
     PyFrame_LocalsToFast(frame, 1);
     if (result == NULL)
         PyTraceBack_Here(frame);
-    critical_state_alloc_post();
+    critical_state_alloc_post(frame);
 
     /* cleanup */
     Py_DECREF(args);
@@ -826,12 +826,12 @@ sys_getframe(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "|i:_getframe", &depth))
         return NULL;
 
-    critical_state_alloc_pre();
+    critical_state_alloc_pre(f);
     while (depth > 0 && f != NULL) {
         f = f->f_back;
         --depth;
     }
-    critical_state_alloc_post();
+    critical_state_alloc_post(f);
     if (f == NULL) {
         PyErr_SetString(PyExc_ValueError,
                         "call stack is not deep enough");
