@@ -630,8 +630,6 @@ PyGILState_Ensure(void)
            GIL. */
         PyEval_InitThreads();
     }
-
-    printf("[%s] Got here YAY\n", __func__);
     
     return current ? PyGILState_LOCKED : PyGILState_UNLOCKED;
 }

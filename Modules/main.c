@@ -674,9 +674,6 @@ Py_Main(int argc, char **argv)
         (filename != NULL || command != NULL || module != NULL)) {
         Py_InspectFlag = 0;
         /* XXX */
-	double result = 0;
-	struct timespec start, stop;
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
         sts = PyRun_AnyFileFlags(stdin, "<stdin>", &cf) != 0;
     }
 
