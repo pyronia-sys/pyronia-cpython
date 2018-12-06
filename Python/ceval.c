@@ -4469,6 +4469,7 @@ call_function(PyObject ***pp_stack, int oparg
         int flags = PyCFunction_GET_FLAGS(func);
         PyThreadState *tstate = PyThreadState_GET();
 
+        pyr_grant_sandbox_access(PyEval_GetFuncName(func));
         PCALL(PCALL_CFUNCTION);
         if (flags & (METH_NOARGS | METH_O)) {
             PyCFunction meth = PyCFunction_GET_FUNCTION(func);
@@ -4498,6 +4499,7 @@ call_function(PyObject ***pp_stack, int oparg
             Py_XDECREF(callargs);
 	    critical_state_alloc_post(NULL);
         }
+        pyr_revoke_sandbox_access(PyEval_GetFuncName(func));
     } else {
         if (PyMethod_Check(func) && PyMethod_GET_SELF(func) != NULL) {
             /* optimize access to bound methods */
@@ -4515,10 +4517,12 @@ call_function(PyObject ***pp_stack, int oparg
         } else
             Py_INCREF(func);
         READ_TIMESTAMP(*pintr0);
+        pyr_grant_sandbox_access(PyEval_GetFuncName(func));
         if (PyFunction_Check(func))
             x = fast_function(func, pp_stack, n, na, nk);
         else
             x = do_call(func, pp_stack, na, nk);
+        pyr_revoke_sandbox_access(PyEval_GetFuncName(func));
         READ_TIMESTAMP(*pintr1);
         Py_DECREF(func);
     }
