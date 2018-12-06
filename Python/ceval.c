@@ -4384,6 +4384,25 @@ PyEval_GetFuncName(PyObject *func)
 }
 
 const char *
+PyEval_GetModuleName(PyObject *func)
+{
+  if (PyMethod_Check(func))
+    return PyEval_GetModuleName(PyMethod_GET_FUNCTION(func));
+  else if (PyFunction_Check(func)) {
+    return (PyFunction_GET_MODULE(func) ?
+	    PyString_AsString(PyFunction_GET_MODULE(func)) :
+	    "null");
+  }
+  else if (PyCFunction_Check(func)) {
+    return (PyCFunction_GET_MODULE(func) ?
+	    PyString_AsString(PyCFunction_GET_MODULE(func)) :
+	    "null");
+  }
+  else
+    return func->ob_type->tp_name;
+}
+
+const char *
 PyEval_GetFuncDesc(PyObject *func)
 {
     if (PyMethod_Check(func))
@@ -4461,6 +4480,11 @@ call_function(PyObject ***pp_stack, int oparg
     PyObject **pfunc = (*pp_stack) - n - 1;
     PyObject *func = *pfunc;
     PyObject *x, *w;
+    char func_fqn[128];
+
+    const char *func_name = PyEval_GetFuncName(func);
+    const char *mod_name = PyEval_GetModuleName(func);
+    snprintf(func_fqn, strlen(func_name)+strlen(mod_name)+2, "%s.%s", mod_name, func_name);
     
     /* Always dispatch PyCFunction first, because these are
        presumed to be the most frequent callable object.
@@ -4469,7 +4493,7 @@ call_function(PyObject ***pp_stack, int oparg
         int flags = PyCFunction_GET_FLAGS(func);
         PyThreadState *tstate = PyThreadState_GET();
 
-        pyr_grant_sandbox_access(PyEval_GetFuncName(func));
+        pyr_grant_sandbox_access(func_fqn);
         PCALL(PCALL_CFUNCTION);
         if (flags & (METH_NOARGS | METH_O)) {
             PyCFunction meth = PyCFunction_GET_FUNCTION(func);
@@ -4499,7 +4523,7 @@ call_function(PyObject ***pp_stack, int oparg
             Py_XDECREF(callargs);
 	    critical_state_alloc_post(NULL);
         }
-        pyr_revoke_sandbox_access(PyEval_GetFuncName(func));
+        pyr_revoke_sandbox_access(func_fqn);
     } else {
         if (PyMethod_Check(func) && PyMethod_GET_SELF(func) != NULL) {
             /* optimize access to bound methods */
@@ -4517,12 +4541,12 @@ call_function(PyObject ***pp_stack, int oparg
         } else
             Py_INCREF(func);
         READ_TIMESTAMP(*pintr0);
-        pyr_grant_sandbox_access(PyEval_GetFuncName(func));
+        pyr_grant_sandbox_access(func_fqn);
         if (PyFunction_Check(func))
             x = fast_function(func, pp_stack, n, na, nk);
         else
             x = do_call(func, pp_stack, na, nk);
-        pyr_revoke_sandbox_access(PyEval_GetFuncName(func));
+        pyr_revoke_sandbox_access(func_fqn);
         READ_TIMESTAMP(*pintr1);
         Py_DECREF(func);
     }
