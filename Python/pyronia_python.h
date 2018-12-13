@@ -29,6 +29,7 @@ PyVarObject *_PyObject_GC_NewSecureVar(PyTypeObject *, Py_ssize_t);
 #define PyObject_GC_NewSecureVar(type, typeobj, n) \
                 ( (type *) _PyObject_GC_NewSecureVar((typeobj), (n)) )
 void PyObject_GC_SecureDel(void *);
+PyObject *PyObject_GC_CopyIsolate(char *obj_name, PyObject *obj);
 
 // these are wrappers around interp dom write access grant and revokes
 // to enable toggling pyronia on and off (and so we don't need to import pyronia_lib.h directly anywhere but here)

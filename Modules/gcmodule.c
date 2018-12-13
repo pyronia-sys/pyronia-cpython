@@ -1556,6 +1556,35 @@ _PyObject_GC_SecureMalloc(size_t basicsize)
 }
 
 PyObject *
+PyObject_GC_CopyIsolate(char *obj_name, PyObject *obj)
+{
+    PyObject *op;
+    PyGC_Head *g;
+    size_t basicsize = Py_SIZE(obj);
+    if (basicsize > PY_SSIZE_T_MAX - sizeof(PyGC_Head))
+        return PyErr_NoMemory();
+    g = (PyGC_Head *)pyr_data_obj_alloc(obj_name,
+        sizeof(PyGC_Head) + basicsize);
+    if (g == NULL)
+        return PyErr_NoMemory();
+    g->gc.gc_refs = GC_UNTRACKED;
+    generations[0].count++; /* number of allocated GC objects */
+    if (generations[0].count > generations[0].threshold &&
+        enabled &&
+        generations[0].threshold &&
+        !collecting &&
+        !PyErr_Occurred()) {
+        collecting = 1;
+        collect_generations();
+        collecting = 0;
+    }
+    op = FROM_GC(g);
+    memcpy(op, obj, basicsize);
+    _PyObject_GC_Del(obj);
+    return op;
+}
+
+PyObject *
 _PyObject_GC_New(PyTypeObject *tp)
 {
     PyObject *op = _PyObject_GC_Malloc(_PyObject_SIZE(tp));
