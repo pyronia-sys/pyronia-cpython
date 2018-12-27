@@ -1510,8 +1510,21 @@ _PyObject_GC_Malloc(size_t basicsize)
     PyGC_Head *g;
     if (basicsize > PY_SSIZE_T_MAX - sizeof(PyGC_Head))
         return PyErr_NoMemory();
-    g = (PyGC_Head *)PyObject_MALLOC(
-        sizeof(PyGC_Head) + basicsize);
+#ifdef Py_PYRONIA
+    if (pyr_in_sandbox() && pyr_get_sandbox_rw_obj()) {
+      char *obj_name = pyr_get_sandbox_rw_obj()->name;
+      // we can skip granting write access to the object's target domain
+      // since this function should be called within the sandbox scope.
+      g = (PyGC_Head *)pyr_data_object_alloc(obj_name,
+					     sizeof(PyGC_Head) + basicsize);
+    }
+    else {
+#endif
+      g = (PyGC_Head *)PyObject_MALLOC(
+				       sizeof(PyGC_Head) + basicsize);
+#ifdef Py_PYRONIA
+    }
+#endif
     if (g == NULL)
         return PyErr_NoMemory();
     g->gc.gc_refs = GC_UNTRACKED;
@@ -1552,35 +1565,6 @@ _PyObject_GC_SecureMalloc(size_t basicsize)
         collecting = 0;
     }
     op = FROM_GC(g);
-    return op;
-}
-
-PyObject *
-PyObject_GC_CopyIsolate(char *obj_name, PyObject *obj)
-{
-    PyObject *op;
-    PyGC_Head *g;
-    size_t basicsize = Py_SIZE(obj);
-    if (basicsize > PY_SSIZE_T_MAX - sizeof(PyGC_Head))
-        return PyErr_NoMemory();
-    g = (PyGC_Head *)pyr_data_obj_alloc(obj_name,
-        sizeof(PyGC_Head) + basicsize);
-    if (g == NULL)
-        return PyErr_NoMemory();
-    g->gc.gc_refs = GC_UNTRACKED;
-    generations[0].count++; /* number of allocated GC objects */
-    if (generations[0].count > generations[0].threshold &&
-        enabled &&
-        generations[0].threshold &&
-        !collecting &&
-        !PyErr_Occurred()) {
-        collecting = 1;
-        collect_generations();
-        collecting = 0;
-    }
-    op = FROM_GC(g);
-    memcpy(op, obj, basicsize);
-    _PyObject_GC_Del(obj);
     return op;
 }
 
@@ -1641,8 +1625,11 @@ PyObject_GC_Del(void *op)
     if (generations[0].count > 0) {
         generations[0].count--;
     }
-    
-    PyObject_FREE(g);
+
+    if (pyr_is_isolated_data_obj(g))
+      pyr_data_obj_free(g);
+    else
+      PyObject_FREE(g);
 }
 
 void

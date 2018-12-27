@@ -4546,11 +4546,6 @@ call_function(PyObject ***pp_stack, int oparg
             x = fast_function(func, pp_stack, n, na, nk);
         else
             x = do_call(func, pp_stack, na, nk);
-        // copy the return value into a data domain
-        if (x && pyr_in_sandbox(func_fqn)) {
-            printf("[%s] Copying object into domain...\n", __func__);
-            x = PyObject_GC_CopyIsolate(pyr_get_sandbox_rw_obj(func_fqn), x);
-        }
         pyr_revoke_sandbox_access(func_fqn);
         READ_TIMESTAMP(*pintr1);
         Py_DECREF(func);

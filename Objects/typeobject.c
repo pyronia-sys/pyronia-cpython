@@ -780,7 +780,19 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
     if (PyType_IS_GC(type))
         obj = _PyObject_GC_Malloc(size);
     else
-        obj = (PyObject *)PyObject_MALLOC(size);
+#ifdef Py_PYRONIA
+      {
+	if (pyr_in_sandbox() && pyr_get_sandbox_rw_obj()) {
+	  char *obj_name = pyr_get_sandbox_rw_obj()->name;
+	  obj = (PyObject *)pyr_data_object_alloc(obj_name, size);
+	}
+	else {
+#endif
+      obj = (PyObject *)PyObject_MALLOC(size);
+#ifdef Py_PYRONIA
+	}
+      }
+#endif
 
     if (obj == NULL)
         return PyErr_NoMemory();
