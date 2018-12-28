@@ -5509,6 +5509,8 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
     // let's do an optimization, if the previous frame we visited is for the same
     // module, skip adding it
     //if (child && strncmp(mod_name, child->lib, strlen(mod_name))) {
+    // skip adding a node for the main module
+    if (strncmp(lib_func_name, "__main__.<module>", strlen(lib_func_name))) {
       err = pyr_new_cg_node(&next, lib_func_name, CAM_DATA, child);
       if (err) {
         printf("[%s] Could not create cg node for lib %s\n", __func__, lib_func_name);
@@ -5516,7 +5518,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
       }
       printf("[%s] Added cg node for module %s\n", __func__, lib_func_name);
       child = next;
-      //}
+    }
     cur_frame = cur_frame->f_back;
   }
 
