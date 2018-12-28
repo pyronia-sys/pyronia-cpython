@@ -20,6 +20,9 @@
     }\
   }
 
+struct _ts;
+typedef struct _ts PyThreadState; // forward declarations
+PyThreadState *pyr_interp_tstate;
 
 void acquire_gil(void);
 void release_gil(void);

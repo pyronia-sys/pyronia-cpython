@@ -5483,10 +5483,13 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
   int err = -1;
   PyFrameObject *cur_frame = NULL;
   char lib_func_name[128]; // 128 is kinda arbitrary, but we don't expect to have super long names
-  
-  cur_frame = PyEval_GetFrame();
 
-  printf("[%s] Collecting at frame %p\n", __func__, cur_frame);
+  if (!pyr_interp_tstate)
+    goto fail;
+  
+  cur_frame = _PyThreadState_GetFrame(pyr_interp_tstate);
+
+  printf("[%s] Collecting at frame %p (tstate %p, interp_tstate %p)\n", __func__, cur_frame, _PyThreadState_Current, pyr_interp_tstate);
   
   while (cur_frame != NULL) {
     pyr_cg_node_t *next;
