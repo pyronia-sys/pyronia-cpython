@@ -667,6 +667,8 @@ static int _Py_TracingPossible = 0;
 int _Py_CheckInterval = 100;
 volatile int _Py_Ticker = 0; /* so that we hit a "tick" first thing */
 
+static int last_sandbox = 0;
+
 PyObject *
 PyEval_EvalCode(PyCodeObject *co, PyObject *globals, PyObject *locals)
 {
@@ -1234,7 +1236,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 	
         /* Main switch on opcode */
         READ_TIMESTAMP(inst0);
-
+	
         switch (opcode) {
 
         /* BEWARE!
@@ -2211,6 +2213,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             v = SECOND();
             w = THIRD();
             STACKADJ(-2);
+	    if (last_sandbox) {
+	      printf("[%s] building class %s with %p, %p\n", __func__, PyString_AsString(w), u, v);
+	    }
             x = build_class(u, v, w);
             SET_TOP(x);
             Py_DECREF(u);
@@ -2234,6 +2239,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 if (err == 0) DISPATCH();
                 break;
             }
+	    if (last_sandbox) {
+	      printf("[%s] store name %s at %p\n", __func__, PyString_AsString(w), x);
+	    }
             t = PyObject_Repr(w);
             if (t == NULL)
                 break;
@@ -3451,7 +3459,6 @@ fast_yield:
 exit_eval_frame:
     Py_LeaveRecursiveCall();
     tstate->frame = f->f_back;
-
     return retval;
 }
 
@@ -4481,10 +4488,13 @@ call_function(PyObject ***pp_stack, int oparg
     PyObject *func = *pfunc;
     PyObject *x, *w;
     char func_fqn[128];
+    int is_sandbox = 0;
 
     const char *func_name = PyEval_GetFuncName(func);
     const char *mod_name = PyEval_GetModuleName(func);
     snprintf(func_fqn, strlen(func_name)+strlen(mod_name)+2, "%s.%s", mod_name, func_name);
+    // need to check if we're already in a sandbox: don't allow nested sandboxes
+    is_sandbox = pyr_is_sandboxed(func_fqn) && !pyr_in_sandbox();
     
     /* Always dispatch PyCFunction first, because these are
        presumed to be the most frequent callable object.
@@ -4493,7 +4503,8 @@ call_function(PyObject ***pp_stack, int oparg
         int flags = PyCFunction_GET_FLAGS(func);
         PyThreadState *tstate = PyThreadState_GET();
 
-        pyr_grant_sandbox_access(func_fqn);
+	if (is_sandbox)
+	  pyr_grant_sandbox_access(func_fqn);
         PCALL(PCALL_CFUNCTION);
         if (flags & (METH_NOARGS | METH_O)) {
             PyCFunction meth = PyCFunction_GET_FUNCTION(func);
@@ -4523,7 +4534,11 @@ call_function(PyObject ***pp_stack, int oparg
             Py_XDECREF(callargs);
 	    critical_state_alloc_post(NULL);
         }
-        pyr_revoke_sandbox_access(func_fqn);
+	if (is_sandbox) {
+	  pyr_revoke_sandbox_access(func_fqn);
+	  last_sandbox = 1;
+	  printf("[%s] Returned object %p\n", __func__, x);
+	}
     } else {
         if (PyMethod_Check(func) && PyMethod_GET_SELF(func) != NULL) {
             /* optimize access to bound methods */
@@ -4541,12 +4556,17 @@ call_function(PyObject ***pp_stack, int oparg
         } else
             Py_INCREF(func);
         READ_TIMESTAMP(*pintr0);
-        pyr_grant_sandbox_access(func_fqn);
+	if (is_sandbox)
+	  pyr_grant_sandbox_access(func_fqn);
         if (PyFunction_Check(func))
             x = fast_function(func, pp_stack, n, na, nk);
         else
             x = do_call(func, pp_stack, na, nk);
-        pyr_revoke_sandbox_access(func_fqn);
+	if (is_sandbox) {
+	  pyr_revoke_sandbox_access(func_fqn);
+	  printf("[%s] Returned object %p\n", __func__, x);
+	  last_sandbox = 1;
+	}
         READ_TIMESTAMP(*pintr1);
         Py_DECREF(func);
     }
@@ -5489,7 +5509,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
   
   cur_frame = _PyThreadState_GetFrame(pyr_interp_tstate);
 
-  printf("[%s] Collecting at frame %p (tstate %p, interp_tstate %p)\n", __func__, cur_frame, _PyThreadState_Current, pyr_interp_tstate);
+  pyrlog("[%s] Collecting at frame %p (tstate %p, interp_tstate %p)\n", __func__, cur_frame, _PyThreadState_Current, pyr_interp_tstate);
   
   while (cur_frame != NULL) {
     pyr_cg_node_t *next;
@@ -5504,7 +5524,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
     char *func_name = PyString_AsString(cur_frame->f_code->co_name);
     snprintf(lib_func_name, strlen(func_name)+strlen(mod_name)+2, "%s.%s", mod_name, func_name);
 
-    printf("[%s] lib function: %s\n", __func__, lib_func_name);
+    pyrlog("[%s] lib function: %s\n", __func__, lib_func_name);
 
     // let's do an optimization, if the previous frame we visited is for the same
     // module, skip adding it
@@ -5516,7 +5536,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
         printf("[%s] Could not create cg node for lib %s\n", __func__, lib_func_name);
         goto fail;
       }
-      printf("[%s] Added cg node for module %s\n", __func__, lib_func_name);
+      pyrlog("[%s] Added cg node for module %s\n", __func__, lib_func_name);
       child = next;
     }
     cur_frame = cur_frame->f_back;
@@ -5528,5 +5548,17 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
  fail:
   if (child)
     pyr_free_callgraph(&child);
+  return NULL;
+}
+
+/* Bypass regular memory allocation if we're in a sandbox
+ * Pyronia-protected data object */
+void *Py_Pyronia_Sandbox_Malloc(size_t nbytes) {
+  if (pyr_in_sandbox() && pyr_get_sandbox_rw_obj()) {
+    char *obj_name = pyr_get_sandbox_rw_obj()->name;
+    // we can skip granting write access to the object's target domain
+    // since this function should be called within the sandbox scope.
+    return pyr_data_object_alloc(obj_name, nbytes);
+  }
   return NULL;
 }

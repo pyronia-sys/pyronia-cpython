@@ -795,7 +795,13 @@ PyObject_Malloc(size_t nbytes)
     poolp pool;
     poolp next;
     uint size;
-
+  
+#ifdef Py_PYRONIA
+    void *buf = Py_Pyronia_Sandbox_Malloc(nbytes);
+    if (buf)
+      return buf; 
+#endif
+    
 #ifdef WITH_VALGRIND
     if (UNLIKELY(running_on_valgrind == -1))
         running_on_valgrind = RUNNING_ON_VALGRIND;
@@ -1010,7 +1016,11 @@ PyObject_Free(void *p)
     /* Pyronia allocated this address, so
      * free it with memdom_free and skip the rest
      * of these checks. */
-    if (pyr_free_critical_state(p)) {
+    if (pyr_is_isolated_data_obj(p)) {
+      pyr_data_obj_free(p);
+      return;
+    }
+    else if (pyr_free_critical_state(p)) {
       pyrlog("[%s] Freed memdom-protected object\n", __func__);
       return;
     }

@@ -782,13 +782,10 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
     else
 #ifdef Py_PYRONIA
       {
-	if (pyr_in_sandbox() && pyr_get_sandbox_rw_obj()) {
-	  char *obj_name = pyr_get_sandbox_rw_obj()->name;
-	  obj = (PyObject *)pyr_data_object_alloc(obj_name, size);
-	}
-	else {
+	obj = (PyObject *)Py_Pyronia_Sandbox_Malloc(size);
+	if (!obj) {
 #endif
-      obj = (PyObject *)PyObject_MALLOC(size);
+	  obj = (PyObject *)PyObject_MALLOC(size);
 #ifdef Py_PYRONIA
 	}
       }
@@ -3082,7 +3079,16 @@ object_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static void
 object_dealloc(PyObject *self)
 {
+#ifdef Py_PYRONIA
+  if (pyr_is_isolated_data_obj(self)) {
+    pyr_data_obj_free(self);
+  }
+  else {
+#endif
     Py_TYPE(self)->tp_free(self);
+#ifdef Py_PYRONIA
+  }
+#endif
 }
 
 static PyObject *

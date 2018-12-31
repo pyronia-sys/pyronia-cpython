@@ -53,4 +53,7 @@ void PyObject_GC_SecureDel(void *);
 
 pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void);
 
+// wrapper around pyr_data_obj_alloc for the current sandbox
+void *Py_Pyronia_Sandbox_Malloc(size_t);
+
 #endif /* __PY_PYRONIA_H */

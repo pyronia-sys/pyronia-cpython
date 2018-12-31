@@ -8,6 +8,10 @@
 #include <sys/types.h>          /* For size_t */
 #endif
 
+#ifdef Py_PYRONIA
+#include "../Python/pyronia_python.h"
+#endif
+
 /* Ensure ob_item has room for at least newsize elements, and set
  * ob_size to newsize.  If newsize > ob_size on entry, the content
  * of the new slots at exit is undefined heap trash; it's the caller's
@@ -59,7 +63,24 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
         new_allocated = 0;
     items = self->ob_item;
     if (new_allocated <= (PY_SIZE_MAX / sizeof(PyObject *)))
-        PyMem_RESIZE(items, PyObject *, new_allocated);
+#ifdef Py_PYRONIA
+      {
+	PyObject **olditems = self->ob_item;
+	items = Py_Pyronia_Sandbox_Malloc(new_allocated*sizeof(PyObject *));
+	if (items) {
+	  memcpy(items, olditems, allocated*sizeof(PyObject *));
+	  if (pyr_is_isolated_data_obj(olditems)) {
+	    pyr_data_obj_free(olditems);
+	  }
+	}
+	else {
+	  items = self->ob_item;
+#endif	  
+	  PyMem_RESIZE(items, PyObject *, new_allocated);
+#ifdef Py_PYRONIA
+	}
+      }
+#endif
     else
         items = NULL;
     if (items == NULL) {
@@ -131,7 +152,19 @@ PyList_New(Py_ssize_t size)
     if ((size_t)size > PY_SIZE_MAX / sizeof(PyObject *))
         return PyErr_NoMemory();
     nbytes = size * sizeof(PyObject *);
+#ifdef Py_PYRONIA
+    int in_sandbox = pyr_in_sandbox();
+    // force list allocations within a sandbox to be placed
+    // in the output domain
+    if (in_sandbox) {
+      op = PyObject_GC_New(PyListObject, &PyList_Type);
+      if (op == NULL)
+	return NULL;
+    }
+    else if (numfree) {
+#else
     if (numfree) {
+#endif
         numfree--;
         op = free_list[numfree];
         _Py_NewReference((PyObject *)op);
@@ -149,11 +182,21 @@ PyList_New(Py_ssize_t size)
     if (size <= 0)
         op->ob_item = NULL;
     else {
+#ifdef Py_PYRONIA
+      // force list allocations within a sandbox to be placed
+      // in the output domain
+      op->ob_item = (PyObject **)Py_Pyronia_Sandbox_Malloc(nbytes);
+      if (op->ob_item)
+	goto set_item;
+#endif
         op->ob_item = (PyObject **) PyMem_MALLOC(nbytes);
         if (op->ob_item == NULL) {
             Py_DECREF(op);
             return PyErr_NoMemory();
         }
+#ifdef Py_PYRONIA
+    set_item:
+#endif
         memset(op->ob_item, 0, nbytes);
     }
     Py_SIZE(op) = size;
@@ -308,7 +351,12 @@ list_dealloc(PyListObject *op)
         while (--i >= 0) {
             Py_XDECREF(op->ob_item[i]);
         }
-        PyMem_FREE(op->ob_item);
+#ifdef Py_PYRONIA
+	if (pyr_is_isolated_data_obj(op->ob_item))
+	  pyr_data_obj_free(op->ob_item);
+	else
+#endif
+	  PyMem_FREE(op->ob_item);
     }
     if (numfree < PyList_MAXFREELIST && PyList_CheckExact(op))
         free_list[numfree++] = op;

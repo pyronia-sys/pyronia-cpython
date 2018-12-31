@@ -1511,14 +1511,8 @@ _PyObject_GC_Malloc(size_t basicsize)
     if (basicsize > PY_SSIZE_T_MAX - sizeof(PyGC_Head))
         return PyErr_NoMemory();
 #ifdef Py_PYRONIA
-    if (pyr_in_sandbox() && pyr_get_sandbox_rw_obj()) {
-      char *obj_name = pyr_get_sandbox_rw_obj()->name;
-      // we can skip granting write access to the object's target domain
-      // since this function should be called within the sandbox scope.
-      g = (PyGC_Head *)pyr_data_object_alloc(obj_name,
-					     sizeof(PyGC_Head) + basicsize);
-    }
-    else {
+    g = (PyGC_Head *)Py_Pyronia_Sandbox_Malloc(sizeof(PyGC_Head) + basicsize);
+    if (!g) {
 #endif
       g = (PyGC_Head *)PyObject_MALLOC(
 				       sizeof(PyGC_Head) + basicsize);
