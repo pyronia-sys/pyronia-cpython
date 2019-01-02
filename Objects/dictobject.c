@@ -8,7 +8,7 @@
 */
 
 #include "Python.h"
-
+#include "../Python/pyronia_python.h"
 
 /* Set a key error with the specified argument, wrapping it in a
  * tuple automatically so that tuple keys are not unpacked as the
@@ -516,8 +516,12 @@ insertdict_by_entry(register PyDictObject *mp, PyObject *key, long hash,
     if (ep->me_value != NULL) {
         old_value = ep->me_value;
         ep->me_value = value;
+	pyr_protected_mem_access_pre(old_value);
         Py_DECREF(old_value); /* which **CAN** re-enter */
+	pyr_protected_mem_access_post(old_value);
+	pyr_protected_mem_access_pre(key);
         Py_DECREF(key);
+	pyr_protected_mem_access_post(key);
     }
     else {
         if (ep->me_key == NULL)

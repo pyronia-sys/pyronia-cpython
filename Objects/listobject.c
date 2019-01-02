@@ -349,7 +349,9 @@ list_dealloc(PyListObject *op)
            immediately deleted. */
         i = Py_SIZE(op);
         while (--i >= 0) {
+	    pyr_protected_mem_access_pre(op->ob_item[i]);
             Py_XDECREF(op->ob_item[i]);
+	    pyr_protected_mem_access_post(op->ob_item[i]);
         }
 #ifdef Py_PYRONIA
 	if (pyr_is_isolated_data_obj(op->ob_item))

@@ -468,7 +468,7 @@ Py_Finalize(void)
      * XXX but I'm unclear on exactly how that one happens.  In any case,
      * XXX I haven't seen a real-life report of either of these.
      */
-    critical_state_alloc_pre(NULL);
+    pyr_protected_mem_access_pre(NULL);
     PyGC_Collect();
 #ifdef COUNT_ALLOCS
     /* With COUNT_ALLOCS, it helps to run GC multiple times:
@@ -480,7 +480,7 @@ Py_Finalize(void)
 
     /* Destroy all modules */
     PyImport_Cleanup();
-    critical_state_alloc_post(NULL);
+    pyr_protected_mem_access_post(NULL);
 
     /* Collect final garbage.  This disposes of cycles created by
      * new-style class definitions, for example.

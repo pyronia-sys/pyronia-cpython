@@ -5,6 +5,7 @@
 #include "Python.h"
 #include <ctype.h>
 #include <stddef.h>
+#include "../Python/pyronia_python.h"
 
 #ifdef COUNT_ALLOCS
 Py_ssize_t null_strings, one_strings;
@@ -1682,7 +1683,9 @@ string_join(PyStringObject *self, PyObject *orig)
         }
     }
 
+    pyr_protected_mem_access_pre(seq);
     Py_DECREF(seq);
+    pyr_protected_mem_access_post(seq);
     return res;
 }
 
