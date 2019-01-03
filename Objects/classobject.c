@@ -33,6 +33,8 @@ PyClass_New(PyObject *bases, PyObject *dict, PyObject *name)
 {
     PyClassObject *op, *dummy;
     static PyObject *docstr, *modstr, *namestr;
+    PyObject *modname = NULL;
+    
     if (docstr == NULL) {
         docstr= PyString_InternFromString("__doc__");
         if (docstr == NULL)
@@ -65,13 +67,14 @@ PyClass_New(PyObject *bases, PyObject *dict, PyObject *name)
     if (PyDict_GetItem(dict, modstr) == NULL) {
         PyObject *globals = PyEval_GetGlobals();
         if (globals != NULL) {
-            PyObject *modname = PyDict_GetItem(globals, namestr);
+            modname = PyDict_GetItem(globals, namestr);
             if (modname != NULL) {
                 if (PyDict_SetItem(dict, modstr, modname) < 0)
                     return NULL;
             }
         }
     }
+    
     if (bases == NULL) {
         bases = PyTuple_New(0);
         if (bases == NULL)
@@ -595,6 +598,7 @@ PyInstance_New(PyObject *klass, PyObject *arg, PyObject *kw)
             Py_DECREF(res);
         }
     }
+    is_class_constructor = 0;
     return (PyObject *)inst;
 }
 
@@ -767,13 +771,17 @@ instance_getattr2(register PyInstanceObject *inst, PyObject *name)
     }
     v = class_lookup(inst->in_class, name, &klass);
     if (v != NULL) {
+        pyr_protected_mem_access_pre(v);
         Py_INCREF(v);
+	pyr_protected_mem_access_post(v);
         f = TP_DESCR_GET(Py_TYPE(v));
         if (f != NULL) {
             PyObject *w = f(v, (PyObject *)inst,
                             (PyObject *)(inst->in_class));
+	    pyr_protected_mem_access_pre(v);
             Py_DECREF(v);
             v = w;
+	    pyr_protected_mem_access_post(v);
         }
     }
     return v;
@@ -2288,14 +2296,14 @@ PyMethod_New(PyObject *func, PyObject *self, PyObject *klass)
  set_im:
 #endif
     im->im_weakreflist = NULL;
+    pyr_protected_mem_access_pre(self);
     Py_INCREF(func);
     im->im_func = func;
-    pyr_protected_mem_access_pre(self);
     Py_XINCREF(self);
-    pyr_protected_mem_access_post(self);
     im->im_self = self;
     Py_XINCREF(klass);
     im->im_class = klass;
+    pyr_protected_mem_access_post(self);
     _PyObject_GC_TRACK(im);
     return (PyObject *)im;
 }
@@ -2409,11 +2417,11 @@ instancemethod_dealloc(register PyMethodObject *im)
     _PyObject_GC_UNTRACK(im);
     if (im->im_weakreflist != NULL)
         PyObject_ClearWeakRefs((PyObject *)im);
-    Py_DECREF(im->im_func);
     pyr_protected_mem_access_pre(im->im_self);
+    Py_DECREF(im->im_func);
     Py_XDECREF(im->im_self);
-    pyr_protected_mem_access_post(im->im_self);
     Py_XDECREF(im->im_class);
+    pyr_protected_mem_access_post(im->im_self);
 #ifdef Py_PYRONIA
     if (pyr_is_isolated_data_obj(im)) {
       PyObject_GC_Del(im);

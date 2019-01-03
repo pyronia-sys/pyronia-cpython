@@ -1427,7 +1427,9 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name, PyObject *dict)
         Py_INCREF(dict);
         res = PyDict_GetItem(dict, name);
         if (res != NULL) {
+	    pyr_protected_mem_access_pre(res);
             Py_INCREF(res);
+	    pyr_protected_mem_access_post(res);
             Py_XDECREF(descr);
             Py_DECREF(dict);
             goto done;

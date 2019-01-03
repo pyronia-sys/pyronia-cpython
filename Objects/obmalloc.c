@@ -1254,6 +1254,17 @@ PyObject_Realloc(void *p, size_t nbytes)
     uint arenaindex_temp;
 #endif
 
+#ifdef Py_PYRONIA
+    void *buf = Py_Pyronia_Sandbox_Malloc(nbytes);
+    if (buf) {
+      memcpy(buf, p, nbytes); // FIXME: this should be the original size
+      if (pyr_is_isolated_data_obj(p)) {
+	pyr_data_obj_free(p);
+      }
+      return buf;
+    }
+#endif
+
     if (p == NULL)
         return PyObject_Malloc(nbytes);
 

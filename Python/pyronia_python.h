@@ -23,6 +23,7 @@
 struct _ts;
 typedef struct _ts PyThreadState; // forward declarations
 PyThreadState *pyr_interp_tstate;
+int is_class_constructor; // needed to support class constructors as sandbox functions
 
 void acquire_gil(void);
 void release_gil(void);
@@ -56,6 +57,9 @@ void PyObject_GC_SecureDel(void *);
 #define pyr_protected_mem_access_post(op) \
     do { } while(0)
 #endif
+
+#define Py_GetFullFuncName(func_fqn, mod, func)				\
+  snprintf(func_fqn, strlen(func)+strlen(mod)+2, "%s.%s", mod, func)
 
 pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void);
 

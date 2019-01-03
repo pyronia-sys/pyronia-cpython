@@ -2222,6 +2222,12 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(u);
             Py_DECREF(v);
             Py_DECREF(w);
+	    if (u && u == sandbox_ret) {
+	      // set up for sandbox exit in store_name:
+	      // return value of the sandbox should be the class object
+	      sandbox_ret = x;
+	      is_class_constructor = 1;
+	    }
             break;
         }
 
@@ -2231,13 +2237,15 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             v = POP();
             if ((x = f->f_locals) != NULL) {
 	        pyr_protected_mem_access_pre(NULL);
+		pyr_protected_mem_access_pre(v);
 	        if (PyDict_CheckExact(x))
                     err = PyDict_SetItem(x, w, v);
                 else
                     err = PyObject_SetItem(x, w, v);
                 Py_DECREF(v);
+		pyr_protected_mem_access_post(v);
 		pyr_protected_mem_access_post(NULL);
-		if (v && v == sandbox_ret) {
+		if (v && v == sandbox_ret && !is_class_constructor) {
 		  pyr_exit_sandbox();
 		  sandbox_ret = NULL;
 		}
@@ -4502,7 +4510,8 @@ call_function(PyObject ***pp_stack, int oparg
 
     const char *func_name = PyEval_GetFuncName(func);
     const char *mod_name = PyEval_GetModuleName(func);
-    snprintf(func_fqn, strlen(func_name)+strlen(mod_name)+2, "%s.%s", mod_name, func_name);
+    Py_GetFullFuncName(func_fqn, mod_name, func_name);
+    
     // need to check if we're already in a sandbox: don't allow nested sandboxes
     is_sandbox = pyr_is_sandboxed(func_fqn) && !pyr_in_sandbox();
     
@@ -4513,8 +4522,10 @@ call_function(PyObject ***pp_stack, int oparg
         int flags = PyCFunction_GET_FLAGS(func);
         PyThreadState *tstate = PyThreadState_GET();
 
-	if (is_sandbox)
+	if (is_sandbox) {
+	  is_class_constructor = 0;
 	  pyr_enter_sandbox(func_fqn);
+	}
         PCALL(PCALL_CFUNCTION);
         if (flags & (METH_NOARGS | METH_O)) {
             PyCFunction meth = PyCFunction_GET_FUNCTION(func);
@@ -4572,8 +4583,11 @@ call_function(PyObject ***pp_stack, int oparg
 	    pyr_protected_mem_access_post(NULL);
             na++;
             n++;
-        } else
+        } else {
+	    pyr_protected_mem_access_pre(func);
             Py_INCREF(func);
+	    pyr_protected_mem_access_post(func);
+	}
         READ_TIMESTAMP(*pintr0);
 	if (is_sandbox)
 	  pyr_enter_sandbox(func_fqn);
@@ -4591,7 +4605,9 @@ call_function(PyObject ***pp_stack, int oparg
 	  printf("[%s] Returned object %p\n", __func__, x);
 	}
         READ_TIMESTAMP(*pintr1);
+	pyr_protected_mem_access_pre(func);
         Py_DECREF(func);
+	pyr_protected_mem_access_post(func);
     }
 
     /* Clear the stack of the function object.  Also removes
@@ -4801,6 +4817,13 @@ do_call(PyObject *func, PyObject ***pp_stack, int na, int nk)
     }
     else
         result = PyObject_Call(func, callargs, kwdict);
+#ifdef Py_PYRONIA
+    // failsafe in case (for some DUMB reason) this function does not
+    // return to call_function (which does happen)
+    if (result && pyr_in_sandbox()) {
+      sandbox_ret = result;
+    }
+#endif
  call_fail:
     pyr_protected_mem_access_pre(NULL);
     Py_XDECREF(callargs);
