@@ -360,7 +360,13 @@ list_dealloc(PyListObject *op)
 #endif
 	  PyMem_FREE(op->ob_item);
     }
+#ifdef Py_PYRONIA
+    if (pyr_in_sandbox())
+        Py_TYPE(op)->tp_free((PyObject *)op);
+    else if (numfree < PyList_MAXFREELIST && PyList_CheckExact(op))
+#else
     if (numfree < PyList_MAXFREELIST && PyList_CheckExact(op))
+#endif
         free_list[numfree++] = op;
     else
         Py_TYPE(op)->tp_free((PyObject *)op);

@@ -1532,7 +1532,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             Py_DECREF(v);
           skip_decref_vx:
+	    pyr_protected_mem_access_pre(w);
             Py_DECREF(w);
+	    pyr_protected_mem_access_post(w);
             SET_TOP(x);
             if (x != NULL) DISPATCH();
             break;
@@ -2282,12 +2284,14 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                     ((PyTupleObject *)v)->ob_item;
                 while (oparg--) {
                     w = items[oparg];
+		    pyr_protected_mem_access_pre(w);
                     Py_INCREF(w);
+		    pyr_protected_mem_access_post(w);
                     PUSH(w);
                 }
 		pyr_protected_mem_access_pre(v);
                 Py_DECREF(v);
-		pyr_protected_mem_access_post(NULL);
+		pyr_protected_mem_access_post(v);
                 DISPATCH();
             } else if (PyList_CheckExact(v) &&
                        PyList_GET_SIZE(v) == oparg) {
@@ -2625,8 +2629,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             w = GETITEM(names, oparg);
             v = TOP();
 	    pyr_protected_mem_access_pre(NULL);
-	    pyr_protected_mem_access_pre(v);
             x = PyObject_GetAttr(v, w);
+	    pyr_protected_mem_access_pre(v);
             Py_DECREF(v);
 	    pyr_protected_mem_access_post(v);
 	    pyr_protected_mem_access_post(NULL);
@@ -4558,7 +4562,9 @@ call_function(PyObject ***pp_stack, int oparg
             PyObject *self = PyMethod_GET_SELF(func);
             PCALL(PCALL_METHOD);
             PCALL(PCALL_BOUND_METHOD);
+	    pyr_protected_mem_access_pre(self);
             Py_INCREF(self);
+	    pyr_protected_mem_access_pre(self);
             func = PyMethod_GET_FUNCTION(func);
             Py_INCREF(func);
 	    pyr_protected_mem_access_pre(NULL);

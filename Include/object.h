@@ -866,8 +866,8 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
             PyObject *_py_tmp = (PyObject *)(op);               \
 	    pyr_protected_mem_access_pre(_py_tmp);		\
             (op) = NULL;					\
-	    pyr_protected_mem_access_post(_py_tmp); 		\
             Py_DECREF(_py_tmp);					\
+	    pyr_protected_mem_access_post(_py_tmp); 		\
         }                                       \
     } while (0)
 
@@ -876,8 +876,8 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
         PyObject *_py_tmp = (PyObject *)(op);   \
 	pyr_protected_mem_access_pre(_py_tmp); 	\
         (op) = (op2);						\
-	pyr_protected_mem_access_post(_py_tmp);			\
         Py_DECREF(_py_tmp);					\
+	pyr_protected_mem_access_post(_py_tmp);			\
   } while (0)
 
 #define Py_XSETREF(op, op2)                     \
@@ -885,8 +885,8 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
         PyObject *_py_tmp = (PyObject *)(op);   \
 	pyr_protected_mem_access_pre(_py_tmp); 	\
 	(op) = (op2);						\
-	pyr_protected_mem_access_post(_py_tmp);			\
         Py_XDECREF(_py_tmp);					\
+	pyr_protected_mem_access_post(_py_tmp);			\
     } while (0)
   
 #endif /* ifndef Py_PYRONIA */

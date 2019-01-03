@@ -1087,7 +1087,9 @@ dict_dealloc(register PyDictObject *mp)
         if (ep->me_key) {
             --fill;
             Py_DECREF(ep->me_key);
+	    pyr_protected_mem_access_pre(ep->me_value);
             Py_XDECREF(ep->me_value);
+	    pyr_protected_mem_access_post(ep->me_value);
         }
     }
     if (mp->ma_table != mp->ma_smalltable)
@@ -1277,8 +1279,11 @@ dict_subscript(PyDictObject *mp, register PyObject *key)
         set_key_error(key);
         return NULL;
     }
-    else
+    else {
+        pyr_protected_mem_access_pre(v);
         Py_INCREF(v);
+	pyr_protected_mem_access_post(v);
+    }
     return v;
 }
 
@@ -1407,7 +1412,9 @@ dict_items(register PyDictObject *mp)
             item = PyList_GET_ITEM(v, j);
             Py_INCREF(key);
             PyTuple_SET_ITEM(item, 0, key);
+	    pyr_protected_mem_access_pre(value);
             Py_INCREF(value);
+	    pyr_protected_mem_access_post(value);
             PyTuple_SET_ITEM(item, 1, value);
             j++;
         }
