@@ -17,6 +17,15 @@ PyObject *
 PyCFunction_NewEx(PyMethodDef *ml, PyObject *self, PyObject *module)
 {
     PyCFunctionObject *op;
+#ifdef Py_PYRONIA
+    int in_sandbox = pyr_in_sandbox();
+    if (in_sandbox) {
+      op = PyObject_GC_New(PyCFunctionObject, &PyCFunction_Type);
+      if (op == NULL)
+	return NULL;
+      goto set_op;
+    }
+#endif
     op = free_list;
     if (op != NULL) {
         free_list = (PyCFunctionObject *)(op->m_self);
@@ -28,11 +37,16 @@ PyCFunction_NewEx(PyMethodDef *ml, PyObject *self, PyObject *module)
         if (op == NULL)
             return NULL;
     }
+#ifdef Py_PYRONIA
+ set_op:
+#endif
     op->m_ml = ml;
+    pyr_protected_mem_access_pre(self);
     Py_XINCREF(self);
     op->m_self = self;
     Py_XINCREF(module);
     op->m_module = module;
+    pyr_protected_mem_access_pre(self);
     _PyObject_GC_TRACK(op);
     return (PyObject *)op;
 }
@@ -133,6 +147,12 @@ meth_dealloc(PyCFunctionObject *m)
     _PyObject_GC_UNTRACK(m);
     Py_XDECREF(m->m_self);
     Py_XDECREF(m->m_module);
+#ifdef Py_PYRONIA
+    if (pyr_is_isolated_data_obj(m)) {
+      PyObject_GC_Del(m);
+      return;
+    }
+#endif
     if (numfree < PyCFunction_MAXFREELIST) {
         m->m_self = (PyObject *)free_list;
         free_list = m;

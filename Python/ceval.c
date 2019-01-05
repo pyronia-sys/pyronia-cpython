@@ -2242,6 +2242,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                     err = PyDict_SetItem(x, w, v);
                 else
                     err = PyObject_SetItem(x, w, v);
+		pyr_protected_mem_access_pre(v);
                 Py_DECREF(v);
 		pyr_protected_mem_access_post(v);
 		pyr_protected_mem_access_post(NULL);
@@ -4511,6 +4512,8 @@ call_function(PyObject ***pp_stack, int oparg
     const char *func_name = PyEval_GetFuncName(func);
     const char *mod_name = PyEval_GetModuleName(func);
     Py_GetFullFuncName(func_fqn, mod_name, func_name);
+
+    //printf("[%s] %s\n", __func__, func_fqn);
     
     // need to check if we're already in a sandbox: don't allow nested sandboxes
     is_sandbox = pyr_is_sandboxed(func_fqn) && !pyr_in_sandbox();

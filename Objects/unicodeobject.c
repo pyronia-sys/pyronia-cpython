@@ -49,6 +49,8 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <windows.h>
 #endif
 
+#include "../Python/pyronia_python.h"
+
 /* Limit for the Unicode object free list */
 
 #define PyUnicode_MAXFREELIST       1024
@@ -330,6 +332,18 @@ PyUnicodeObject *_PyUnicode_New(Py_ssize_t length)
     }
 
     /* Unicode freelist & memory allocation */
+#ifdef Py_PYRONIA
+    int in_sandbox = pyr_in_sandbox();
+    size_t new_size;
+    if (in_sandbox) {
+      unicode = PyObject_New(PyUnicodeObject, &PyUnicode_Type);
+      if (unicode == NULL)
+	return NULL;
+      new_size = sizeof(Py_UNICODE) * ((size_t)length + 1);
+      unicode->str = (Py_UNICODE*) PyObject_MALLOC(new_size);
+      goto set_unicode;
+    }
+#endif
     if (free_list) {
         unicode = free_list;
         free_list = *(PyUnicodeObject **)unicode;
@@ -358,6 +372,9 @@ PyUnicodeObject *_PyUnicode_New(Py_ssize_t length)
         unicode->str = (Py_UNICODE*) PyObject_MALLOC(new_size);
     }
 
+#ifdef Py_PYRONIA
+ set_unicode:
+#endif
     if (!unicode->str) {
         PyErr_NoMemory();
         goto onError;
@@ -388,7 +405,11 @@ static
 void unicode_dealloc(register PyUnicodeObject *unicode)
 {
     if (PyUnicode_CheckExact(unicode) &&
-        numfree < PyUnicode_MAXFREELIST) {
+        numfree < PyUnicode_MAXFREELIST
+#ifdef Py_PYRONIA
+	&& !pyr_is_isolated_data_obj(unicode)
+#endif
+	) {
         /* Keep-Alive optimization */
         if (unicode->length >= KEEPALIVE_SIZE_LIMIT) {
             PyObject_DEL(unicode->str);
@@ -405,7 +426,7 @@ void unicode_dealloc(register PyUnicodeObject *unicode)
     }
     else {
         PyObject_DEL(unicode->str);
-        Py_XDECREF(unicode->defenc);
+	Py_XDECREF(unicode->defenc);
         Py_TYPE(unicode)->tp_free((PyObject *)unicode);
     }
 }
@@ -8580,7 +8601,9 @@ PyObject *PyUnicode_Format(PyObject *format,
             case 'r':
                 if (PyUnicode_CheckExact(v) && c == 's') {
                     temp = v;
+		    pyr_protected_mem_access_pre(temp);
                     Py_INCREF(temp);
+		    pyr_protected_mem_access_post(temp);
                 }
                 else {
                     PyObject *unicode;
@@ -8787,7 +8810,9 @@ PyObject *PyUnicode_Format(PyObject *format,
                 Py_XDECREF(temp);
                 goto onError;
             }
+	    pyr_protected_mem_access_pre(temp);
             Py_XDECREF(temp);
+	    pyr_protected_mem_access_post(temp);
         } /* '%' */
     } /* until end */
     if (argidx < arglen && !dict) {

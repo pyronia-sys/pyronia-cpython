@@ -293,9 +293,11 @@ gc_list_merge(PyGC_Head *from, PyGC_Head *to)
     assert(from != to);
     if (!gc_list_is_empty(from)) {
         tail = to->gc.gc_prev;
-	pyr_protected_mem_access_pre(tail);
+	pyr_protected_mem_access_pre(tail);	
         tail->gc.gc_next = from->gc.gc_next;
+	pyr_protected_mem_access_pre(tail->gc.gc_next);
         tail->gc.gc_next->gc.gc_prev = tail;
+	pyr_protected_mem_access_post(tail->gc.gc_next);
 	pyr_protected_mem_access_post(tail);
         to->gc.gc_prev = from->gc.gc_prev;
 	PyObject *prev = (PyObject *)to->gc.gc_prev;

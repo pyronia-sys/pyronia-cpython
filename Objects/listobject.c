@@ -2936,7 +2936,9 @@ list_iter(PyObject *seq)
     if (it == NULL)
         return NULL;
     it->it_index = 0;
+    pyr_protected_mem_access_pre(seq);
     Py_INCREF(seq);
+    pyr_protected_mem_access_pre(seq);
     it->it_seq = (PyListObject *)seq;
     _PyObject_GC_TRACK(it);
     return (PyObject *)it;
@@ -2946,7 +2948,9 @@ static void
 listiter_dealloc(listiterobject *it)
 {
     _PyObject_GC_UNTRACK(it);
+    pyr_protected_mem_access_pre(it->it_seq);
     Py_XDECREF(it->it_seq);
+    pyr_protected_mem_access_post(it->it_seq);
     PyObject_GC_Del(it);
 }
 
@@ -2972,12 +2976,16 @@ listiter_next(listiterobject *it)
     if (it->it_index < PyList_GET_SIZE(seq)) {
         item = PyList_GET_ITEM(seq, it->it_index);
         ++it->it_index;
+	pyr_protected_mem_access_pre(item);
         Py_INCREF(item);
+	pyr_protected_mem_access_pre(item);
         return item;
     }
 
     it->it_seq = NULL;
+    pyr_protected_mem_access_pre(seq);
     Py_DECREF(seq);
+    pyr_protected_mem_access_post(seq);
     return NULL;
 }
 

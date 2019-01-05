@@ -338,9 +338,11 @@ lookdict(PyDictObject *mp, PyObject *key, register long hash)
     else {
         if (ep->me_hash == hash) {
             startkey = ep->me_key;
+	    pyr_protected_mem_access_pre(startkey);
             Py_INCREF(startkey);
             cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
             Py_DECREF(startkey);
+	    pyr_protected_mem_access_post(startkey);
             if (cmp < 0)
                 return NULL;
             if (ep0 == mp->ma_table && ep->me_key == startkey) {
@@ -370,9 +372,11 @@ lookdict(PyDictObject *mp, PyObject *key, register long hash)
             return ep;
         if (ep->me_hash == hash && ep->me_key != dummy) {
             startkey = ep->me_key;
+	    pyr_protected_mem_access_pre(startkey);
             Py_INCREF(startkey);
             cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
             Py_DECREF(startkey);
+	    pyr_protected_mem_access_post(startkey);
             if (cmp < 0)
                 return NULL;
             if (ep0 == mp->ma_table && ep->me_key == startkey) {
@@ -1086,7 +1090,9 @@ dict_dealloc(register PyDictObject *mp)
     for (ep = mp->ma_table; fill > 0; ep++) {
         if (ep->me_key) {
             --fill;
+	    pyr_protected_mem_access_pre(ep->me_key);
             Py_DECREF(ep->me_key);
+	    pyr_protected_mem_access_pre(ep->me_key);
 	    pyr_protected_mem_access_pre(ep->me_value);
             Py_XDECREF(ep->me_value);
 	    pyr_protected_mem_access_post(ep->me_value);
