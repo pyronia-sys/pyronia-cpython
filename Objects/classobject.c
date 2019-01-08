@@ -2296,14 +2296,18 @@ PyMethod_New(PyObject *func, PyObject *self, PyObject *klass)
  set_im:
 #endif
     im->im_weakreflist = NULL;
-    pyr_protected_mem_access_pre(self);
+    pyr_protected_mem_access_pre(func);
     Py_INCREF(func);
+    pyr_protected_mem_access_post(func);
     im->im_func = func;
+    pyr_protected_mem_access_pre(self);
     Py_XINCREF(self);
-    im->im_self = self;
-    Py_XINCREF(klass);
-    im->im_class = klass;
     pyr_protected_mem_access_post(self);
+    im->im_self = self;
+    pyr_protected_mem_access_pre(klass);
+    Py_XINCREF(klass);
+    pyr_protected_mem_access_post(klass);
+    im->im_class = klass;
     _PyObject_GC_TRACK(im);
     return (PyObject *)im;
 }
@@ -2417,11 +2421,15 @@ instancemethod_dealloc(register PyMethodObject *im)
     _PyObject_GC_UNTRACK(im);
     if (im->im_weakreflist != NULL)
         PyObject_ClearWeakRefs((PyObject *)im);
-    pyr_protected_mem_access_pre(im->im_self);
+    pyr_protected_mem_access_pre(im->im_func);
     Py_DECREF(im->im_func);
+    pyr_protected_mem_access_post(im->im_func);
+    pyr_protected_mem_access_pre(im->im_self);
     Py_XDECREF(im->im_self);
-    Py_XDECREF(im->im_class);
     pyr_protected_mem_access_post(im->im_self);
+    pyr_protected_mem_access_pre(im->im_class);
+    Py_XDECREF(im->im_class);
+    pyr_protected_mem_access_post(im->im_class);
 #ifdef Py_PYRONIA
     if (pyr_is_isolated_data_obj(im)) {
       PyObject_GC_Del(im);

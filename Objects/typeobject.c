@@ -110,7 +110,9 @@ PyType_Modified(PyTypeObject *type)
             }
         }
     }
+    pyr_protected_mem_access_pre(type);
     type->tp_flags &= ~Py_TPFLAGS_VALID_VERSION_TAG;
+    pyr_protected_mem_access_post(type);
 }
 
 static void
@@ -796,8 +798,10 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
 
     memset(obj, '\0', size);
 
+    pyr_protected_mem_access_pre(type);
     if (type->tp_flags & Py_TPFLAGS_HEAPTYPE)
         Py_INCREF(type);
+    pyr_protected_mem_access_post(type);
 
     if (type->tp_itemsize == 0)
         (void)PyObject_INIT(obj, type);
@@ -1062,7 +1066,9 @@ subtype_dealloc(PyObject *self)
     basedealloc(self);
 
     /* Can't reference self beyond this point */
+    pyr_protected_mem_access_pre(type);
     Py_DECREF(type);
+    pyr_protected_mem_access_post(type);
 
   endlabel:
     ++_PyTrash_delete_nesting;

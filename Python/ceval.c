@@ -4580,7 +4580,9 @@ call_function(PyObject ***pp_stack, int oparg
             Py_INCREF(self);
 	    pyr_protected_mem_access_pre(self);
             func = PyMethod_GET_FUNCTION(func);
+	    pyr_protected_mem_access_pre(func);
             Py_INCREF(func);
+	    pyr_protected_mem_access_pre(func);
 	    pyr_protected_mem_access_pre(NULL);
             Py_SETREF(*pfunc, self);
 	    pyr_protected_mem_access_post(NULL);

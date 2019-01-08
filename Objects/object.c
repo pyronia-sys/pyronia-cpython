@@ -1391,7 +1391,9 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name, PyObject *dict)
     descr = _PyType_Lookup(tp, name);
 #endif
 
+    pyr_protected_mem_access_pre(descr);
     Py_XINCREF(descr);
+    pyr_protected_mem_access_post(descr);
 
     f = NULL;
     if (descr != NULL &&
@@ -1399,7 +1401,9 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name, PyObject *dict)
         f = descr->ob_type->tp_descr_get;
         if (f != NULL && PyDescr_IsData(descr)) {
             res = f(descr, obj, (PyObject *)obj->ob_type);
+	    pyr_protected_mem_access_pre(descr);
             Py_DECREF(descr);
+	    pyr_protected_mem_access_post(descr);
             goto done;
         }
     }
@@ -1432,7 +1436,9 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name, PyObject *dict)
 	    pyr_protected_mem_access_pre(res);
             Py_INCREF(res);
 	    pyr_protected_mem_access_post(res);
+	    pyr_protected_mem_access_pre(descr);
             Py_XDECREF(descr);
+	    pyr_protected_mem_access_post(descr);
             Py_DECREF(dict);
             goto done;
         }
@@ -1441,7 +1447,9 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name, PyObject *dict)
 
     if (f != NULL) {
         res = f(descr, obj, (PyObject *)Py_TYPE(obj));
+	pyr_protected_mem_access_pre(descr);
         Py_DECREF(descr);
+	pyr_protected_mem_access_post(descr);
         goto done;
     }
 

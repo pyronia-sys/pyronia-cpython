@@ -64,7 +64,7 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
     items = self->ob_item;
     if (new_allocated <= (PY_SIZE_MAX / sizeof(PyObject *)))
 #ifdef Py_PYRONIA
-      {
+      {	
 	PyObject **olditems = self->ob_item;
 	items = Py_Pyronia_Sandbox_Malloc(new_allocated*sizeof(PyObject *));
 	if (items) {
@@ -74,7 +74,17 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
 	  }
 	}
 	else {
-	  items = self->ob_item;
+	  if (pyr_is_isolated_data_obj(olditems)) {
+	    // FIXME: we aren't in a sandbox right now, let's copy the list
+	    // into unsafe memory
+	    items = PyMem_MALLOC(allocated*sizeof(PyObject *));
+	    if (items) {
+	      memcpy(items, olditems, allocated*sizeof(PyObject *));
+	    }
+	  }
+	  else {
+	    items = self->ob_item;
+	  }
 #endif	  
 	  PyMem_RESIZE(items, PyObject *, new_allocated);
 #ifdef Py_PYRONIA
