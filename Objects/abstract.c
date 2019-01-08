@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "structmember.h" /* we need the offsetof() macro from there */
 #include "longintrepr.h"
+#include "../Python/pyronia_python.h"
 
 #define NEW_STYLE_NUMBER(o) PyType_HasFeature((o)->ob_type, \
                 Py_TPFLAGS_CHECKTYPES)
@@ -2280,8 +2281,10 @@ PySequence_Fast(PyObject *v, const char *m)
         return null_error();
 
     if (PyList_CheckExact(v) || PyTuple_CheckExact(v)) {
+        pyr_protected_mem_access_pre(v);
         Py_INCREF(v);
-        return v;
+	pyr_protected_mem_access_post(v);
+	return v;
     }
 
     it = PyObject_GetIter(v);

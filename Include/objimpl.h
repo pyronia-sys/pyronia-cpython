@@ -272,11 +272,16 @@ extern PyGC_Head *_PyGC_generation0;
     PyGC_Head *g = _Py_AS_GC(o); \
     if (g->gc.gc_refs != _PyGC_REFS_UNTRACKED) \
         Py_FatalError("GC object already tracked"); \
-    g->gc.gc_refs = _PyGC_REFS_REACHABLE; \
-    g->gc.gc_next = _PyGC_generation0; \
+    pyr_protected_mem_access_pre(g);		    \
+    g->gc.gc_refs = _PyGC_REFS_REACHABLE;	    \
+    g->gc.gc_next = _PyGC_generation0;		    \
     g->gc.gc_prev = _PyGC_generation0->gc.gc_prev; \
-    g->gc.gc_prev->gc.gc_next = g; \
-    _PyGC_generation0->gc.gc_prev = g; \
+    PyObject *prev = (PyObject *)g->gc.gc_prev;	   \
+    pyr_protected_mem_access_pre(prev);		   \
+    g->gc.gc_prev->gc.gc_next = g;		   \
+    _PyGC_generation0->gc.gc_prev = g;		   \
+    pyr_protected_mem_access_post(prev);	   \
+    pyr_protected_mem_access_post(g);		   \
     } while (0);
 
 #include "../Python/pyronia_python.h"
@@ -288,20 +293,18 @@ extern PyGC_Head *_PyGC_generation0;
 #define _PyObject_GC_UNTRACK(o) do { \
     PyGC_Head *g = _Py_AS_GC(o); \
     assert(g->gc.gc_refs != _PyGC_REFS_UNTRACKED); \
+    pyr_protected_mem_access_pre(g);		   \
     g->gc.gc_refs = _PyGC_REFS_UNTRACKED; \
-    int is_crit_prev = pyr_is_critical_state(g->gc.gc_prev); \
-    int is_crit_next = pyr_is_critical_state(g->gc.gc_next); \
-    if (is_crit_prev)					     \
-      critical_state_alloc_pre(g->gc.gc_prev);		     \
-    if (is_crit_next)				\
-      critical_state_alloc_pre(g->gc.gc_next); \
+    PyObject *prev = (PyObject *)g->gc.gc_prev;		     \
+    PyObject *next = (PyObject *)g->gc.gc_next;		     \
+    pyr_protected_mem_access_pre(prev);			     \
+    pyr_protected_mem_access_pre(next);			     \
     g->gc.gc_prev->gc.gc_next = g->gc.gc_next; \
     g->gc.gc_next->gc.gc_prev = g->gc.gc_prev; \
     g->gc.gc_next = NULL;			\
-    if (is_crit_prev)				\
-      critical_state_alloc_post(g->gc.gc_prev);	\
-    if (is_crit_next)				\
-      critical_state_alloc_post(g->gc.gc_next); \
+    pyr_protected_mem_access_post(prev);	\
+    pyr_protected_mem_access_post(next);	\
+    pyr_protected_mem_access_post(g);	\
   } while (0);
 
 /* True if the object is currently tracked by the GC. */

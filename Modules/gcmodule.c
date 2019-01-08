@@ -269,12 +269,20 @@ gc_list_move(PyGC_Head *node, PyGC_Head *list)
     PyGC_Head *current_prev = node->gc.gc_prev;
     PyGC_Head *current_next = node->gc.gc_next;
     /* Unlink from current list. */
+    pyr_protected_mem_access_pre(node);
+    pyr_protected_mem_access_pre(node->gc.gc_prev);
+    pyr_protected_mem_access_pre(node->gc.gc_next);
     current_prev->gc.gc_next = current_next;
     current_next->gc.gc_prev = current_prev;
     /* Relink at end of new list. */
+    pyr_protected_mem_access_pre(list->gc.gc_prev);
     new_prev = node->gc.gc_prev = list->gc.gc_prev;
     new_prev->gc.gc_next = list->gc.gc_prev = node;
     node->gc.gc_next = list;
+    pyr_protected_mem_access_post(list->gc.gc_prev);
+    pyr_protected_mem_access_post(node->gc.gc_next);
+    pyr_protected_mem_access_post(node->gc.gc_prev);
+    pyr_protected_mem_access_post(node);
 }
 
 /* append list `from` onto list `to`; `from` becomes an empty list */
@@ -285,10 +293,17 @@ gc_list_merge(PyGC_Head *from, PyGC_Head *to)
     assert(from != to);
     if (!gc_list_is_empty(from)) {
         tail = to->gc.gc_prev;
+	pyr_protected_mem_access_pre(tail);	
         tail->gc.gc_next = from->gc.gc_next;
+	pyr_protected_mem_access_pre(tail->gc.gc_next);
         tail->gc.gc_next->gc.gc_prev = tail;
+	pyr_protected_mem_access_post(tail->gc.gc_next);
+	pyr_protected_mem_access_post(tail);
         to->gc.gc_prev = from->gc.gc_prev;
+	PyObject *prev = (PyObject *)to->gc.gc_prev;
+	pyr_protected_mem_access_pre(prev);
         to->gc.gc_prev->gc.gc_next = to;
+	pyr_protected_mem_access_post(prev);
     }
     gc_list_init(from);
 }
@@ -335,9 +350,9 @@ update_refs(PyGC_Head *containers)
     PyGC_Head *gc = containers->gc.gc_next;
     for (; gc != containers; gc = gc->gc.gc_next) {
         assert(gc->gc.gc_refs == GC_REACHABLE);
-	critical_state_alloc_pre(gc->gc.gc_refs);
+	pyr_protected_mem_access_pre(gc);
         gc->gc.gc_refs = Py_REFCNT(FROM_GC(gc));
-	critical_state_alloc_post(gc->gc.gc_refs);
+	pyr_protected_mem_access_post(gc);
         /* Python's cyclic gc should never see an incoming refcount
          * of 0:  if something decref'ed to 0, it should have been
          * deallocated immediately at that time.
@@ -372,8 +387,10 @@ visit_decref(PyObject *op, void *data)
          * because only they have positive gc_refs.
          */
         assert(gc->gc.gc_refs != 0); /* else refcount was too small */
+	pyr_protected_mem_access_pre(gc);
         if (gc->gc.gc_refs > 0)
             gc->gc.gc_refs--;
+	pyr_protected_mem_access_post(gc);
     }
     return 0;
 }
@@ -410,7 +427,9 @@ visit_reachable(PyObject *op, PyGC_Head *reachable)
              * we need to do is tell move_unreachable that it's
              * reachable.
              */
+	    pyr_protected_mem_access_pre(gc);
             gc->gc.gc_refs = 1;
+	    pyr_protected_mem_access_post(gc);
         }
         else if (gc_refs == GC_TENTATIVELY_UNREACHABLE) {
             /* This had gc_refs = 0 when move_unreachable got
@@ -420,7 +439,9 @@ visit_reachable(PyObject *op, PyGC_Head *reachable)
              * again.
              */
             gc_list_move(gc, reachable);
+	    pyr_protected_mem_access_pre(gc);
             gc->gc.gc_refs = 1;
+	    pyr_protected_mem_access_post(gc);
         }
         /* Else there's nothing to do.
          * If gc_refs > 0, it must be in move_unreachable's 'young'
@@ -435,6 +456,7 @@ visit_reachable(PyObject *op, PyGC_Head *reachable)
                    || gc_refs == GC_REACHABLE
                    || gc_refs == GC_UNTRACKED);
          }
+	pyr_protected_mem_access_post(gc);
     }
     return 0;
 }
@@ -476,17 +498,17 @@ move_unreachable(PyGC_Head *young, PyGC_Head *unreachable)
             PyObject *op = FROM_GC(gc);
             traverseproc traverse = Py_TYPE(op)->tp_traverse;
             assert(gc->gc.gc_refs > 0);
-	    critical_state_alloc_pre(gc->gc.gc_refs);
+	    pyr_protected_mem_access_pre(gc);
             gc->gc.gc_refs = GC_REACHABLE;
-	    critical_state_alloc_post(gc->gc.gc_refs);
+	    pyr_protected_mem_access_post(gc);
             (void) traverse(op,
                             (visitproc)visit_reachable,
                             (void *)young);
             next = gc->gc.gc_next;
             if (PyTuple_CheckExact(op)) {
-	        critical_state_alloc_pre(op);
+	        pyr_protected_mem_access_pre(op);
                 _PyTuple_MaybeUntrack(op);
-		critical_state_alloc_post(op);
+		pyr_protected_mem_access_post(op);
             }
         }
         else {
@@ -498,10 +520,10 @@ move_unreachable(PyGC_Head *young, PyGC_Head *unreachable)
              * young if that's so, and we'll see it again.
              */
             next = gc->gc.gc_next;
-	    critical_state_alloc_pre(gc);
             gc_list_move(gc, unreachable);
+	    pyr_protected_mem_access_pre(gc);
             gc->gc.gc_refs = GC_TENTATIVELY_UNREACHABLE;
-	    critical_state_alloc_post(gc);
+	    pyr_protected_mem_access_post(gc);
         }
         gc = next;
     }
@@ -1510,8 +1532,15 @@ _PyObject_GC_Malloc(size_t basicsize)
     PyGC_Head *g;
     if (basicsize > PY_SSIZE_T_MAX - sizeof(PyGC_Head))
         return PyErr_NoMemory();
-    g = (PyGC_Head *)PyObject_MALLOC(
-        sizeof(PyGC_Head) + basicsize);
+#ifdef Py_PYRONIA
+    g = (PyGC_Head *)Py_Pyronia_Sandbox_Malloc(sizeof(PyGC_Head) + basicsize);
+    if (!g) {
+#endif
+      g = (PyGC_Head *)PyObject_MALLOC(
+				       sizeof(PyGC_Head) + basicsize);
+#ifdef Py_PYRONIA
+    }
+#endif
     if (g == NULL)
         return PyErr_NoMemory();
     g->gc.gc_refs = GC_UNTRACKED;
@@ -1612,8 +1641,11 @@ PyObject_GC_Del(void *op)
     if (generations[0].count > 0) {
         generations[0].count--;
     }
-    
-    PyObject_FREE(g);
+
+    if (pyr_is_isolated_data_obj(g))
+      pyr_data_obj_free(g);
+    else
+      PyObject_FREE(g);
 }
 
 void
@@ -1628,9 +1660,9 @@ PyObject_GC_SecureDel(void *op)
 
     // Pyronia hook: free an object with memdom_free
     // if it's been allocated in any memory domain
-    critical_state_alloc_pre(g);
+    pyr_protected_mem_access_pre(g);
     pyr_free_critical_state(g);
-    critical_state_alloc_post(g);
+    pyr_protected_mem_access_post(g);
 }
 
 /* for binary compatibility with 2.2 */

@@ -58,10 +58,10 @@ WARN_GET_SET(f_exc_value)
 static PyObject *
 frame_getlocals(PyFrameObject *f, void *closure)
 {
-    critical_state_alloc_pre(f);
+    pyr_protected_mem_access_pre(f);
     PyFrame_FastToLocals(f);
     Py_INCREF(f->f_locals);
-    critical_state_alloc_post(f);
+    pyr_protected_mem_access_post(f);
     return f->f_locals;
 }
 
@@ -121,7 +121,7 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
     unsigned char setup_op = 0;         /* (ditto) */
     int err = -1;
 
-     critical_state_alloc_pre(f);
+     pyr_protected_mem_access_pre(f);
 
     /* f_lineno must be an integer. */
     if (!PyInt_Check(p_new_lineno)) {
@@ -355,7 +355,7 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
     f->f_lasti = new_lasti;
     err = 0;
  out:
-    critical_state_alloc_post(f);
+    pyr_protected_mem_access_post(f);
     return err;
 }
 
@@ -373,7 +373,7 @@ frame_gettrace(PyFrameObject *f, void *closure)
 static int
 frame_settrace(PyFrameObject *f, PyObject* v, void *closure)
 {
-    critical_state_alloc_pre(f);
+    pyr_protected_mem_access_pre(f);
     /* We rely on f_lineno being accurate when f_trace is set. */
     f->f_lineno = PyFrame_GetLineNumber(f);
 
@@ -381,7 +381,7 @@ frame_settrace(PyFrameObject *f, PyObject* v, void *closure)
         v = NULL;
     Py_XINCREF(v);
     Py_XSETREF(f->f_trace, v);
-    critical_state_alloc_post(f);
+    pyr_protected_mem_access_post(f);
 
     return 0;
 }
@@ -463,13 +463,13 @@ frame_dealloc(PyFrameObject *f)
 
     pyrlog("[%s] frame at %p\n", __func__, f);
     
-    critical_state_alloc_pre(f);
+    pyr_protected_mem_access_pre(f);
     PyObject_GC_UnTrack(f);
     Py_TRASHCAN_SAFE_BEGIN(f)
     /* Kill all local variables */
     valuestack = f->f_valuestack;
     for (p = f->f_localsplus; p < valuestack; p++) {
-        critical_state_alloc_pre(*p);
+        pyr_protected_mem_access_pre(*p);
         Py_CLEAR(*p);
     }
 
@@ -513,7 +513,7 @@ frame_dealloc(PyFrameObject *f)
     }
 
     Py_DECREF(co);
-    critical_state_alloc_post(f);
+    pyr_protected_mem_access_post(f);
     Py_TRASHCAN_SAFE_END(f)
 }
 
@@ -523,7 +523,7 @@ frame_traverse(PyFrameObject *f, visitproc visit, void *arg)
     PyObject **fastlocals, **p;
     int i, slots;
 
-    critical_state_alloc_pre(f);
+    pyr_protected_mem_access_pre(f);
     Py_VISIT(f->f_back);
     Py_VISIT(f->f_code);
     Py_VISIT(f->f_builtins);
@@ -545,7 +545,7 @@ frame_traverse(PyFrameObject *f, visitproc visit, void *arg)
         for (p = f->f_valuestack; p < f->f_stacktop; p++)
             Py_VISIT(*p);
     }
-    critical_state_alloc_post(f);
+    pyr_protected_mem_access_post(f);
     return 0;
 }
 
@@ -555,7 +555,7 @@ frame_clear(PyFrameObject *f)
     PyObject **fastlocals, **p, **oldtop;
     int i, slots;
 
-    critical_state_alloc_pre(f);
+    pyr_protected_mem_access_pre(f);
     
     /* Before anything else, make sure that this frame is clearly marked
      * as being defunct!  Else, e.g., a generator reachable from this
@@ -582,7 +582,7 @@ frame_clear(PyFrameObject *f)
             Py_CLEAR(*p);
     }
 
-    critical_state_alloc_post(f);
+    pyr_protected_mem_access_post(f);
 }
 
 static PyObject *

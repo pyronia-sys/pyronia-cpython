@@ -4,6 +4,8 @@
 #include "Python.h"
 #include "frameobject.h"
 
+#include "../Python/pyronia_python.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1389,7 +1391,9 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name, PyObject *dict)
     descr = _PyType_Lookup(tp, name);
 #endif
 
+    pyr_protected_mem_access_pre(descr);
     Py_XINCREF(descr);
+    pyr_protected_mem_access_post(descr);
 
     f = NULL;
     if (descr != NULL &&
@@ -1397,7 +1401,9 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name, PyObject *dict)
         f = descr->ob_type->tp_descr_get;
         if (f != NULL && PyDescr_IsData(descr)) {
             res = f(descr, obj, (PyObject *)obj->ob_type);
+	    pyr_protected_mem_access_pre(descr);
             Py_DECREF(descr);
+	    pyr_protected_mem_access_post(descr);
             goto done;
         }
     }
@@ -1427,8 +1433,12 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name, PyObject *dict)
         Py_INCREF(dict);
         res = PyDict_GetItem(dict, name);
         if (res != NULL) {
+	    pyr_protected_mem_access_pre(res);
             Py_INCREF(res);
+	    pyr_protected_mem_access_post(res);
+	    pyr_protected_mem_access_pre(descr);
             Py_XDECREF(descr);
+	    pyr_protected_mem_access_post(descr);
             Py_DECREF(dict);
             goto done;
         }
@@ -1437,7 +1447,9 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name, PyObject *dict)
 
     if (f != NULL) {
         res = f(descr, obj, (PyObject *)Py_TYPE(obj));
+	pyr_protected_mem_access_pre(descr);
         Py_DECREF(descr);
+	pyr_protected_mem_access_post(descr);
         goto done;
     }
 
@@ -1574,8 +1586,9 @@ PyObject_IsTrue(PyObject *v)
     if (v == Py_None)
         return 0;
     else if (v->ob_type->tp_as_number != NULL &&
-             v->ob_type->tp_as_number->nb_nonzero != NULL)
+             v->ob_type->tp_as_number->nb_nonzero != NULL) {
         res = (*v->ob_type->tp_as_number->nb_nonzero)(v);
+    }
     else if (v->ob_type->tp_as_mapping != NULL &&
              v->ob_type->tp_as_mapping->mp_length != NULL)
         res = (*v->ob_type->tp_as_mapping->mp_length)(v);
@@ -2257,9 +2270,18 @@ _Py_ForgetReference(register PyObject *op)
 void
 _Py_Dealloc(PyObject *op)
 {
+#ifdef Py_PYRONIA
+  if (pyr_is_isolated_data_obj(op)) {
+      pyr_data_obj_free(op);
+  }
+  else {
+#endif
     destructor dealloc = Py_TYPE(op)->tp_dealloc;
     _Py_ForgetReference(op);
     (*dealloc)(op);
+#ifdef Py_PYRONIA
+  }
+#endif
 }
 
 /* Print all live objects.  Because PyObject_Print is called, the

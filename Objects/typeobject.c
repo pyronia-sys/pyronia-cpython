@@ -110,7 +110,9 @@ PyType_Modified(PyTypeObject *type)
             }
         }
     }
+    pyr_protected_mem_access_pre(type);
     type->tp_flags &= ~Py_TPFLAGS_VALID_VERSION_TAG;
+    pyr_protected_mem_access_post(type);
 }
 
 static void
@@ -780,15 +782,26 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
     if (PyType_IS_GC(type))
         obj = _PyObject_GC_Malloc(size);
     else
-        obj = (PyObject *)PyObject_MALLOC(size);
+#ifdef Py_PYRONIA
+      {
+	obj = (PyObject *)Py_Pyronia_Sandbox_Malloc(size);
+	if (!obj) {
+#endif
+	  obj = (PyObject *)PyObject_MALLOC(size);
+#ifdef Py_PYRONIA
+	}
+      }
+#endif
 
     if (obj == NULL)
         return PyErr_NoMemory();
 
     memset(obj, '\0', size);
 
+    pyr_protected_mem_access_pre(type);
     if (type->tp_flags & Py_TPFLAGS_HEAPTYPE)
         Py_INCREF(type);
+    pyr_protected_mem_access_post(type);
 
     if (type->tp_itemsize == 0)
         (void)PyObject_INIT(obj, type);
@@ -796,9 +809,9 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
         (void) PyObject_INIT_VAR((PyVarObject *)obj, type, nitems);
 
     if (PyType_IS_GC(type)) {
-        critical_state_alloc_pre(obj);
+        pyr_protected_mem_access_pre(obj);
         _PyObject_GC_TRACK(obj);
-	critical_state_alloc_post(obj);
+	pyr_protected_mem_access_post(obj);
     }
     return obj;
 }
@@ -1053,7 +1066,9 @@ subtype_dealloc(PyObject *self)
     basedealloc(self);
 
     /* Can't reference self beyond this point */
+    pyr_protected_mem_access_pre(type);
     Py_DECREF(type);
+    pyr_protected_mem_access_post(type);
 
   endlabel:
     ++_PyTrash_delete_nesting;
@@ -3070,7 +3085,16 @@ object_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static void
 object_dealloc(PyObject *self)
 {
+#ifdef Py_PYRONIA
+  if (pyr_is_isolated_data_obj(self)) {
+    pyr_data_obj_free(self);
+  }
+  else {
+#endif
     Py_TYPE(self)->tp_free(self);
+#ifdef Py_PYRONIA
+  }
+#endif
 }
 
 static PyObject *

@@ -3,6 +3,8 @@
 
 #include "Python.h"
 
+#include "../Python/pyronia_python.h"
+
 /* Speed optimization to avoid frequent malloc/free of small tuples */
 #ifndef PyTuple_MAXSAVESIZE
 #define PyTuple_MAXSAVESIZE     20  /* Largest tuple to save on free list */
@@ -55,6 +57,15 @@ PyTuple_New(register Py_ssize_t size)
         return NULL;
     }
 #if PyTuple_MAXSAVESIZE > 0
+#ifdef Py_PYRONIA
+    int in_sandbox = pyr_in_sandbox();
+    if (in_sandbox) {
+      op = PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, size);
+      if (op == NULL)
+	return NULL;
+      goto set_item;
+    }
+#endif
     if (size == 0 && free_list[0]) {
         op = free_list[0];
         Py_INCREF(op);
@@ -86,15 +97,21 @@ PyTuple_New(register Py_ssize_t size)
         {
             return PyErr_NoMemory();
         }
-
         op = PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, size);
         if (op == NULL)
             return NULL;
     }
+#ifdef Py_PYRONIA
+    set_item:
+#endif
     for (i=0; i < size; i++)
         op->ob_item[i] = NULL;
 #if PyTuple_MAXSAVESIZE > 0
-    if (size == 0) {
+    if (size == 0
+#ifdef Py_PYRONIA
+	&& !pyr_is_isolated_data_obj(op)
+#endif
+	) {
         free_list[0] = op;
         ++numfree[0];
         Py_INCREF(op);          /* extra INCREF so that this is never freed */
@@ -218,20 +235,31 @@ tupledealloc(register PyTupleObject *op)
     Py_TRASHCAN_SAFE_BEGIN(op)
     if (len > 0) {
         i = len;
-        while (--i >= 0)
+        while (--i >= 0) {
+	    pyr_protected_mem_access_pre(op->ob_item[i]);
             Py_XDECREF(op->ob_item[i]);
+	    pyr_protected_mem_access_post(op->ob_item[i]);
+	}
 #if PyTuple_MAXSAVESIZE > 0
+#ifdef Py_PYRONIA
+	if (pyr_is_isolated_data_obj(op)) {
+	  goto free_tuple;
+	}
+#endif
         if (len < PyTuple_MAXSAVESIZE &&
             numfree[len] < PyTuple_MAXFREELIST &&
             Py_TYPE(op) == &PyTuple_Type)
-        {
+	  {
             op->ob_item[0] = (PyObject *) free_list[len];
             numfree[len]++;
             free_list[len] = op;
             goto done; /* return */
-        }
+	  }
 #endif
     }
+#ifdef Py_PYRONIA
+ free_tuple:
+#endif
     Py_TYPE(op)->tp_free((PyObject *)op);
 done:
     Py_TRASHCAN_SAFE_END(op)

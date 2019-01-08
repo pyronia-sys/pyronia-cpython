@@ -213,14 +213,14 @@ Py_InitializeEx(int install_sigs)
     (void) PyThreadState_Swap(tstate);
 
 #ifdef Py_PYRONIA
+    pyr_interp_tstate = NULL;
     // Pyronia hook: initialize memdom subsystem and open
     // stack inspection communication channel
     if ((err = pyr_init(Pyr_MainMod, LIB_POLICY,
 			Py_Generate_Pyronia_Callstack,
 			acquire_gil, release_gil)))
       Py_FatalError("Pyronia init failed");
-
-    printf("done initializing pyronia\n");
+    pyr_interp_tstate = tstate;
 #endif
     
     _Py_ReadyTypes();
@@ -300,6 +300,8 @@ Py_InitializeEx(int install_sigs)
 #ifdef WITH_THREAD
     _PyGILState_Init(interp, tstate);
 #endif /* WITH_THREAD */
+
+    printf("[%s] tstate at init %p\n", __func__, _PyThreadState_Current);
 
     if (!Py_NoSiteFlag)
         initsite(); /* Module site */
@@ -466,7 +468,7 @@ Py_Finalize(void)
      * XXX but I'm unclear on exactly how that one happens.  In any case,
      * XXX I haven't seen a real-life report of either of these.
      */
-    critical_state_alloc_pre(NULL);
+    pyr_protected_mem_access_pre(NULL);
     PyGC_Collect();
 #ifdef COUNT_ALLOCS
     /* With COUNT_ALLOCS, it helps to run GC multiple times:
@@ -478,7 +480,7 @@ Py_Finalize(void)
 
     /* Destroy all modules */
     PyImport_Cleanup();
-    critical_state_alloc_post(NULL);
+    pyr_protected_mem_access_post(NULL);
 
     /* Collect final garbage.  This disposes of cycles created by
      * new-style class definitions, for example.

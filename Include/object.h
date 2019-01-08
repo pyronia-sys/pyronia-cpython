@@ -864,38 +864,29 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
     do {                                        \
         if (op) {                               \
             PyObject *_py_tmp = (PyObject *)(op);               \
-	    int is_crit = pyr_is_critical_state(op);		\
-	    if (is_crit)					\
-	      critical_state_alloc_pre(op);			\
+	    pyr_protected_mem_access_pre(_py_tmp);		\
             (op) = NULL;					\
-	    if (is_crit)					\
-	      critical_state_alloc_post(op);			\
             Py_DECREF(_py_tmp);					\
+	    pyr_protected_mem_access_post(_py_tmp); 		\
         }                                       \
     } while (0)
 
 #define Py_SETREF(op, op2)                      \
   do {						\
         PyObject *_py_tmp = (PyObject *)(op);   \
-        int is_crit = pyr_is_critical_state(op);		\
-	if (is_crit)						\
-	  critical_state_alloc_pre(op);				\
+	pyr_protected_mem_access_pre(_py_tmp); 	\
         (op) = (op2);						\
-	if (is_crit)						\
-	  critical_state_alloc_post(op);				\
         Py_DECREF(_py_tmp);					\
+	pyr_protected_mem_access_post(_py_tmp);			\
   } while (0)
 
 #define Py_XSETREF(op, op2)                     \
     do {                                        \
         PyObject *_py_tmp = (PyObject *)(op);   \
-	int is_crit = pyr_is_critical_state(op);		\
-	if (is_crit)						\
-	  critical_state_alloc_pre(op);				\
+	pyr_protected_mem_access_pre(_py_tmp); 	\
 	(op) = (op2);						\
-	if (is_crit)						\
-	  critical_state_alloc_post(op);				\
         Py_XDECREF(_py_tmp);					\
+	pyr_protected_mem_access_post(_py_tmp);			\
     } while (0)
   
 #endif /* ifndef Py_PYRONIA */

@@ -5,6 +5,7 @@
 #include "Python.h"
 #include <ctype.h>
 #include <stddef.h>
+#include "../Python/pyronia_python.h"
 
 #ifdef COUNT_ALLOCS
 Py_ssize_t null_strings, one_strings;
@@ -1682,7 +1683,9 @@ string_join(PyStringObject *self, PyObject *orig)
         }
     }
 
+    pyr_protected_mem_access_pre(seq);
     Py_DECREF(seq);
+    pyr_protected_mem_access_post(seq);
     return res;
 }
 
@@ -4700,7 +4703,9 @@ PyString_Format(PyObject *format, PyObject *args)
             goto error;
         while (--n >= 0) {
             PyObject *w = PyTuple_GET_ITEM(orig_args, n + argidx);
+	    pyr_protected_mem_access_pre(w);
             Py_INCREF(w);
+	    pyr_protected_mem_access_post(w);
             PyTuple_SET_ITEM(v, n, w);
         }
         args = v;
@@ -4719,7 +4724,9 @@ PyString_Format(PyObject *format, PyObject *args)
     format = PyUnicode_Decode(fmt, fmtcnt, NULL, NULL);
     if (format == NULL)
         goto error;
+    pyr_protected_mem_access_pre(args);
     v = PyUnicode_Format(format, args);
+    pyr_protected_mem_access_post(args);
     Py_DECREF(format);
     if (v == NULL)
         goto error;
@@ -4728,7 +4735,9 @@ PyString_Format(PyObject *format, PyObject *args)
     w = PyUnicode_Concat(result, v);
     Py_DECREF(result);
     Py_DECREF(v);
+    pyr_protected_mem_access_pre(args);
     Py_DECREF(args);
+    pyr_protected_mem_access_post(args);
     return w;
 #endif /* Py_USING_UNICODE */
 

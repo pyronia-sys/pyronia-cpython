@@ -8,7 +8,7 @@
 */
 
 #include "Python.h"
-
+#include "../Python/pyronia_python.h"
 
 /* Set a key error with the specified argument, wrapping it in a
  * tuple automatically so that tuple keys are not unpacked as the
@@ -338,9 +338,11 @@ lookdict(PyDictObject *mp, PyObject *key, register long hash)
     else {
         if (ep->me_hash == hash) {
             startkey = ep->me_key;
+	    pyr_protected_mem_access_pre(startkey);
             Py_INCREF(startkey);
             cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
             Py_DECREF(startkey);
+	    pyr_protected_mem_access_post(startkey);
             if (cmp < 0)
                 return NULL;
             if (ep0 == mp->ma_table && ep->me_key == startkey) {
@@ -370,9 +372,11 @@ lookdict(PyDictObject *mp, PyObject *key, register long hash)
             return ep;
         if (ep->me_hash == hash && ep->me_key != dummy) {
             startkey = ep->me_key;
+	    pyr_protected_mem_access_pre(startkey);
             Py_INCREF(startkey);
             cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
             Py_DECREF(startkey);
+	    pyr_protected_mem_access_post(startkey);
             if (cmp < 0)
                 return NULL;
             if (ep0 == mp->ma_table && ep->me_key == startkey) {
@@ -516,8 +520,12 @@ insertdict_by_entry(register PyDictObject *mp, PyObject *key, long hash,
     if (ep->me_value != NULL) {
         old_value = ep->me_value;
         ep->me_value = value;
+	pyr_protected_mem_access_pre(old_value);
         Py_DECREF(old_value); /* which **CAN** re-enter */
+	pyr_protected_mem_access_post(old_value);
+	pyr_protected_mem_access_pre(key);
         Py_DECREF(key);
+	pyr_protected_mem_access_post(key);
     }
     else {
         if (ep->me_key == NULL)
@@ -1082,8 +1090,12 @@ dict_dealloc(register PyDictObject *mp)
     for (ep = mp->ma_table; fill > 0; ep++) {
         if (ep->me_key) {
             --fill;
+	    pyr_protected_mem_access_pre(ep->me_key);
             Py_DECREF(ep->me_key);
+	    pyr_protected_mem_access_pre(ep->me_key);
+	    pyr_protected_mem_access_pre(ep->me_value);
             Py_XDECREF(ep->me_value);
+	    pyr_protected_mem_access_post(ep->me_value);
         }
     }
     if (mp->ma_table != mp->ma_smalltable)
@@ -1273,8 +1285,11 @@ dict_subscript(PyDictObject *mp, register PyObject *key)
         set_key_error(key);
         return NULL;
     }
-    else
+    else {
+        pyr_protected_mem_access_pre(v);
         Py_INCREF(v);
+	pyr_protected_mem_access_post(v);
+    }
     return v;
 }
 
@@ -1403,7 +1418,9 @@ dict_items(register PyDictObject *mp)
             item = PyList_GET_ITEM(v, j);
             Py_INCREF(key);
             PyTuple_SET_ITEM(item, 0, key);
+	    pyr_protected_mem_access_pre(value);
             Py_INCREF(value);
+	    pyr_protected_mem_access_post(value);
             PyTuple_SET_ITEM(item, 1, value);
             j++;
         }

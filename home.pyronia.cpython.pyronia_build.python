@@ -14,25 +14,30 @@
 /proc/*/net/psched r,
 /dev/pts/* r,
 /usr/lib/locale/locale-archive r,
-/usr/local/lib/python2.7/ r,
+/usr/local/lib/python2.7/* r,
 /home/pyronia/cpython/Lib** rmix,
-/usr/local/lib/python2.7/site-packages/ r,
+/home/pyronia/cpython/pyronia_build/** rm,
+/usr/local/lib/python2.7/site-packages** rmix,
+/usr/local/lib/python2.7/dist-packages/ r,
+/usr/local/lib/python2.7/dist-packages/openalpr** rmix,
 /usr/local/lib r,
 /usr/share/zoneinfo/posixrules r,
 /proc/*/mounts rix,
 /proc/*/status r,
+/proc/*/maps r,
 /dev/urandom r,
 /dev/ r,
 /usr/lib/x86_64-linux-gnu/* rm,
-/home/pyronia/.local/ rm,
-/home/pyronia/.local/lib/ rm,
-/home/pyronia/.local/lib/python2.7/ rm,
 /home/pyronia/.local/lib/python2.7/site-packages** rmix,
 
 /home/pyronia/cpython/home.pyronia.cpython.pyronia_build.python-lib.prof r,
 
+# /home/pyronia/libpyronia/testsuite/python-tests/hello.py r,
+# /home/pyronia/libpyronia/testsuite/python-tests/message.py r,
+# /home/pyronia/hello.txt r,
+
 # TODO: replace these with YOUR resource access rules
-# include /home/pyronia/libpyronia/testsuite/python-tests/openalpr_test.prof
+include /home/pyronia/libpyronia/testsuite/python-tests/openalpr_test.prof
 # include /home/pyronia/cpython/install.prof
-include /home/pyronia/libpyronia/testsuite/python-tests/twitterPhoto.prof
+# include /home/pyronia/libpyronia/testsuite/python-tests/twitterPhoto.prof
 }

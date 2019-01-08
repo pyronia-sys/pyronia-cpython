@@ -4,6 +4,8 @@
 #include "Python.h"
 #include "structmember.h"
 
+#include "../Python/pyronia_python.h"
+
 /* Free list for method objects to save malloc/free overhead
  * The im_self element is used to chain the elements.
  */
@@ -31,6 +33,8 @@ PyClass_New(PyObject *bases, PyObject *dict, PyObject *name)
 {
     PyClassObject *op, *dummy;
     static PyObject *docstr, *modstr, *namestr;
+    PyObject *modname = NULL;
+    
     if (docstr == NULL) {
         docstr= PyString_InternFromString("__doc__");
         if (docstr == NULL)
@@ -63,13 +67,14 @@ PyClass_New(PyObject *bases, PyObject *dict, PyObject *name)
     if (PyDict_GetItem(dict, modstr) == NULL) {
         PyObject *globals = PyEval_GetGlobals();
         if (globals != NULL) {
-            PyObject *modname = PyDict_GetItem(globals, namestr);
+            modname = PyDict_GetItem(globals, namestr);
             if (modname != NULL) {
                 if (PyDict_SetItem(dict, modstr, modname) < 0)
                     return NULL;
             }
         }
     }
+    
     if (bases == NULL) {
         bases = PyTuple_New(0);
         if (bases == NULL)
@@ -593,6 +598,7 @@ PyInstance_New(PyObject *klass, PyObject *arg, PyObject *kw)
             Py_DECREF(res);
         }
     }
+    is_class_constructor = 0;
     return (PyObject *)inst;
 }
 
@@ -640,7 +646,9 @@ instance_dealloc(register PyInstanceObject *inst)
     /* Temporarily resurrect the object. */
     assert(Py_TYPE(inst) == &PyInstance_Type);
     assert(Py_REFCNT(inst) == 0);
+    pyr_protected_mem_access_pre(inst);
     Py_REFCNT(inst) = 1;
+    pyr_protected_mem_access_post(inst);
 
     /* Save the current exception, if any. */
     PyErr_Fetch(&error_type, &error_value, &error_traceback);
@@ -665,7 +673,10 @@ instance_dealloc(register PyInstanceObject *inst)
      * cause a recursive call.
      */
     assert(Py_REFCNT(inst) > 0);
-    if (--Py_REFCNT(inst) == 0) {
+    pyr_protected_mem_access_pre(inst);
+    int refcnt = --Py_REFCNT(inst);
+    pyr_protected_mem_access_post(inst);
+    if (refcnt == 0) {
 
         /* New weakrefs could be created during the finalizer call.
             If this occurs, clear them out without calling their
@@ -676,8 +687,10 @@ instance_dealloc(register PyInstanceObject *inst)
                                 (inst->in_weakreflist));
         }
 
+	pyr_protected_mem_access_pre(inst);
         Py_DECREF(inst->in_class);
         Py_XDECREF(inst->in_dict);
+	pyr_protected_mem_access_post(inst);
         PyObject_GC_Del(inst);
     }
     else {
@@ -685,8 +698,10 @@ instance_dealloc(register PyInstanceObject *inst)
         /* __del__ resurrected it!  Make it look like the original
          * Py_DECREF never happened.
          */
+	pyr_protected_mem_access_pre(inst);
         _Py_NewReference((PyObject *)inst);
         Py_REFCNT(inst) = refcnt;
+	pyr_protected_mem_access_post(inst);
         _PyObject_GC_TRACK(inst);
         /* If Py_REF_DEBUG, _Py_NewReference bumped _Py_RefTotal, so
          * we need to undo that. */
@@ -749,18 +764,24 @@ instance_getattr2(register PyInstanceObject *inst, PyObject *name)
 
     v = PyDict_GetItem(inst->in_dict, name);
     if (v != NULL) {
+        pyr_protected_mem_access_pre(v);
         Py_INCREF(v);
+	pyr_protected_mem_access_post(v);
         return v;
     }
     v = class_lookup(inst->in_class, name, &klass);
     if (v != NULL) {
+        pyr_protected_mem_access_pre(v);
         Py_INCREF(v);
+	pyr_protected_mem_access_post(v);
         f = TP_DESCR_GET(Py_TYPE(v));
         if (f != NULL) {
             PyObject *w = f(v, (PyObject *)inst,
                             (PyObject *)(inst->in_class));
+	    pyr_protected_mem_access_pre(v);
             Py_DECREF(v);
             v = w;
+	    pyr_protected_mem_access_post(v);
         }
     }
     return v;
@@ -2252,6 +2273,15 @@ PyMethod_New(PyObject *func, PyObject *self, PyObject *klass)
 {
     register PyMethodObject *im;
     im = free_list;
+#ifdef Py_PYRONIA
+    int in_sandbox = pyr_in_sandbox();
+    if (in_sandbox) {
+      im = PyObject_GC_New(PyMethodObject, &PyMethod_Type);
+      if (im == NULL)
+	return NULL;
+      goto set_im;
+    }
+#endif
     if (im != NULL) {
         free_list = (PyMethodObject *)(im->im_self);
         (void)PyObject_INIT(im, &PyMethod_Type);
@@ -2262,12 +2292,21 @@ PyMethod_New(PyObject *func, PyObject *self, PyObject *klass)
         if (im == NULL)
             return NULL;
     }
+#ifdef Py_PYRONIA
+ set_im:
+#endif
     im->im_weakreflist = NULL;
+    pyr_protected_mem_access_pre(func);
     Py_INCREF(func);
+    pyr_protected_mem_access_post(func);
     im->im_func = func;
+    pyr_protected_mem_access_pre(self);
     Py_XINCREF(self);
+    pyr_protected_mem_access_post(self);
     im->im_self = self;
+    pyr_protected_mem_access_pre(klass);
     Py_XINCREF(klass);
+    pyr_protected_mem_access_post(klass);
     im->im_class = klass;
     _PyObject_GC_TRACK(im);
     return (PyObject *)im;
@@ -2382,10 +2421,22 @@ instancemethod_dealloc(register PyMethodObject *im)
     _PyObject_GC_UNTRACK(im);
     if (im->im_weakreflist != NULL)
         PyObject_ClearWeakRefs((PyObject *)im);
+    pyr_protected_mem_access_pre(im->im_func);
     Py_DECREF(im->im_func);
+    pyr_protected_mem_access_post(im->im_func);
+    pyr_protected_mem_access_pre(im->im_self);
     Py_XDECREF(im->im_self);
+    pyr_protected_mem_access_post(im->im_self);
+    pyr_protected_mem_access_pre(im->im_class);
     Py_XDECREF(im->im_class);
-    if (numfree < PyMethod_MAXFREELIST) {
+    pyr_protected_mem_access_post(im->im_class);
+#ifdef Py_PYRONIA
+    if (pyr_is_isolated_data_obj(im)) {
+      PyObject_GC_Del(im);
+      return;
+    }
+#endif
+    if (numfree < PyMethod_MAXFREELIST) {      
         im->im_self = (PyObject *)free_list;
         free_list = im;
         numfree++;
