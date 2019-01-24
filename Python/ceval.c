@@ -5541,11 +5541,17 @@ void release_gil() {
 
 // returns the name of the module being called in the given frame
 static inline char *get_module_name(PyFrameObject *f) {
-  PyObject *name_obj = PyDict_GetItemString(f->f_globals, "__name__");
+  char *name = NULL;
+  PyObject *name_obj = NULL;
+  Py_INCREF(f->f_globals);
+  name_obj = PyDict_GetItemString(f->f_globals, "__name__");
+  Py_INCREF(name_obj);
   if (PyString_Check(name_obj)) {
-    return PyString_AsString(name_obj);
+    name = PyString_AsString(name_obj);
   }
-  return NULL;
+  Py_DECREF(name_obj);
+  Py_DECREF(f->f_globals);
+  return name;
 }
 
 /** Collect the interpreter's callstack based on its current
@@ -5565,7 +5571,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
   cur_frame = _PyThreadState_GetFrame(pyr_interp_tstate);
 
   pyrlog("[%s] Collecting at frame %p (tstate %p, interp_tstate %p)\n", __func__, cur_frame, _PyThreadState_Current, pyr_interp_tstate);
-  
+
   while (cur_frame != NULL) {
     pyr_cg_node_t *next;
     memset(lib_func_name, 0, 128);
@@ -5596,8 +5602,6 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
     }
     cur_frame = cur_frame->f_back;
   }
-
-  // this means we haven't started
 
   return child;
  fail:

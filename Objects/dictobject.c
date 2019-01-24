@@ -1092,7 +1092,7 @@ dict_dealloc(register PyDictObject *mp)
             --fill;
 	    pyr_protected_mem_access_pre(ep->me_key);
             Py_DECREF(ep->me_key);
-	    pyr_protected_mem_access_pre(ep->me_key);
+	    pyr_protected_mem_access_post (ep->me_key);
 	    pyr_protected_mem_access_pre(ep->me_value);
             Py_XDECREF(ep->me_value);
 	    pyr_protected_mem_access_post(ep->me_value);
