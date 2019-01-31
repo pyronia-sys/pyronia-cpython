@@ -46,7 +46,7 @@ PyCFunction_NewEx(PyMethodDef *ml, PyObject *self, PyObject *module)
     op->m_self = self;
     Py_XINCREF(module);
     op->m_module = module;
-    pyr_protected_mem_access_pre(self);
+    pyr_protected_mem_access_post(self);
     _PyObject_GC_TRACK(op);
     return (PyObject *)op;
 }
@@ -145,8 +145,10 @@ static void
 meth_dealloc(PyCFunctionObject *m)
 {
     _PyObject_GC_UNTRACK(m);
+    pyr_protected_mem_access_pre(m->m_self);
     Py_XDECREF(m->m_self);
     Py_XDECREF(m->m_module);
+    pyr_protected_mem_access_post(m->m_self);
 #ifdef Py_PYRONIA
     if (pyr_is_isolated_data_obj(m)) {
       PyObject_GC_Del(m);

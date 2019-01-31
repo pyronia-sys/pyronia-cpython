@@ -492,7 +492,9 @@ tupleconcat(register PyTupleObject *a, register PyObject *bb)
     dest = np->ob_item + Py_SIZE(a);
     for (i = 0; i < Py_SIZE(b); i++) {
         PyObject *v = src[i];
+	pyr_protected_mem_access_pre(v);
         Py_INCREF(v);
+	pyr_protected_mem_access_post(v);
         dest[i] = v;
     }
     return (PyObject *)np;

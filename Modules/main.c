@@ -552,6 +552,9 @@ Py_Main(int argc, char **argv)
     Py_SetProgramName(argv[0]);
 #endif
     Pyr_MainMod = (module == NULL ? filename : module);
+    double result = 0;
+    struct timespec start, stop;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
     Py_Initialize();
 
     if (Py_VerboseFlag ||
@@ -646,16 +649,10 @@ Py_Main(int argc, char **argv)
                 PyErr_Print();
                 sts = 1;
             } else {
-	        double result = 0;
-		struct timespec start, stop;
-		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
                 sts = PyRun_AnyFileExFlags(
                     fp,
                     filename == NULL ? "<stdin>" : filename,
                     filename != NULL, &cf) != 0;
-		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
-		result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
-		fprintf(stdout, "CPU time for %s = %.2f us\n", filename, result);
             }
         }
 
@@ -678,6 +675,9 @@ Py_Main(int argc, char **argv)
     }
 
     Py_Finalize();
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+    result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
+    fprintf(stdout, "CPU time for %s = %.2f us\n", filename, result);
 #ifdef RISCOS
     if (Py_RISCOSWimpFlag)
         fprintf(stderr, "\x0cq\x0c"); /* make frontend quit */

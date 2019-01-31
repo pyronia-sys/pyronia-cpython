@@ -1570,7 +1570,7 @@ _PyObject_GC_SecureMalloc(size_t basicsize)
     if ((void *)g == (void *)1) {
       g = (PyGC_Head *)PyObject_MALLOC(
 				       sizeof(PyGC_Head) + basicsize);
-      printf("[%s] Could not allocate %lu bytes in interp dom: %p\n", __func__, basicsize, g);
+      pyrlog("[%s] Could not allocate %lu bytes in interp dom: %p\n", __func__, basicsize, g);
     }
     if (g == NULL)
         return PyErr_NoMemory();

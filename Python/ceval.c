@@ -2637,12 +2637,13 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         {
             w = GETITEM(names, oparg);
             v = TOP();
-	    pyr_protected_mem_access_pre(NULL);
+	    pyr_protected_mem_access_pre(w);
+	    pyr_protected_mem_access_pre(v);
             x = PyObject_GetAttr(v, w);
 	    pyr_protected_mem_access_pre(v);
             Py_DECREF(v);
 	    pyr_protected_mem_access_post(v);
-	    pyr_protected_mem_access_post(NULL);
+	    pyr_protected_mem_access_post(w);
             SET_TOP(x);
             if (x != NULL) DISPATCH();
             break;
@@ -2796,7 +2797,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 FAST_DISPATCH();
             }
             err = PyObject_IsTrue(w);
+	    pyr_protected_mem_access_pre(w);
             Py_DECREF(w);
+	    pyr_protected_mem_access_post(w);
             if (err > 0)
                 err = 0;
             else if (err == 0) {
@@ -3543,7 +3546,9 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
         }
         for (i = 0; i < n; i++) {
             x = args[i];
+	    pyr_protected_mem_access_pre(x);
             Py_INCREF(x);
+	    pyr_protected_mem_access_post(x);
             SETLOCAL(i, x);
         }
         if (co->co_flags & CO_VARARGS) {
@@ -4517,6 +4522,9 @@ call_function(PyObject ***pp_stack, int oparg
     
     // need to check if we're already in a sandbox: don't allow nested sandboxes
     is_sandbox = pyr_is_sandboxed(func_fqn) && !pyr_in_sandbox();
+    if (is_sandbox) {
+      pyrlog("[%s] Entering sandbox for %s\n", __func__, func_fqn);
+    }
     
     /* Always dispatch PyCFunction first, because these are
        presumed to be the most frequent callable object.
@@ -5590,8 +5598,8 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
     // let's do an optimization, if the previous frame we visited is for the same
     // module, skip adding it
     //if (child && strncmp(mod_name, child->lib, strlen(mod_name))) {
-    // skip adding a node for the main module
-    if (strncmp(lib_func_name, "__main__.<module>", strlen(lib_func_name))) {
+    // skip adding a node for any functions defined in the main module
+    if (strncmp(lib_func_name, "__main__.", 9)) {
       err = pyr_new_cg_node(&next, lib_func_name, CAM_DATA, child);
       if (err) {
         printf("[%s] Could not create cg node for lib %s\n", __func__, lib_func_name);

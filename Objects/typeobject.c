@@ -896,8 +896,10 @@ clear_slots(PyTypeObject *type, PyObject *self)
             char *addr = (char *)self + mp->offset;
             PyObject *obj = *(PyObject **)addr;
             if (obj != NULL) {
+	        pyr_protected_mem_access_pre(obj);
                 *(PyObject **)addr = NULL;
                 Py_DECREF(obj);
+		pyr_protected_mem_access_post(obj);
             }
         }
     }
