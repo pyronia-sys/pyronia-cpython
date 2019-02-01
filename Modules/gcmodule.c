@@ -1637,6 +1637,35 @@ _PyObject_GC_Resize(PyVarObject *op, Py_ssize_t nitems)
     return op;
 }
 
+PyVarObject *
+_PyObject_GC_SecureResize(PyVarObject *op, Py_ssize_t nitems)
+{
+    const size_t basicsize = _PyObject_VAR_SIZE(Py_TYPE(op), nitems);
+    PyGC_Head *g = AS_GC(op);
+    PyGC_Head *new_g = NULL;
+    PyVarObject *new_op = NULL;
+    int is_critical = 0;
+    if (basicsize > PY_SSIZE_T_MAX - sizeof(PyGC_Head))
+        return (PyVarObject *)PyErr_NoMemory();
+    new_g = (PyGC_Head *)pyr_alloc_critical_runtime_state(sizeof(PyGC_Head) + basicsize);
+    if ((void *)new_g == (void *)1) {
+      new_g = (PyGC_Head *)PyObject_REALLOC(g,  sizeof(PyGC_Head) + basicsize);
+      pyrlog("[%s] Could not allocate %lu bytes in interp dom: %p\n", __func__, basicsize, g);
+    }
+    else {
+      is_critical = 1;
+    }
+    if (new_g == NULL)
+        return (PyVarObject *)PyErr_NoMemory();
+    if (is_critical) {
+      memcpy(new_g, g, sizeof(PyGC_Head)+basicsize);
+      pyr_free_critical_state(g);
+    }
+    new_op = (PyVarObject *) FROM_GC(new_g);
+    Py_SIZE(new_op) = nitems;
+    return new_op;
+}
+
 void
 PyObject_GC_Del(void *op)
 {

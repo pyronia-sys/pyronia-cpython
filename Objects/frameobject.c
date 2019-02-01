@@ -662,8 +662,6 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
     PyFrameObject *f;
     PyObject *builtins;
     Py_ssize_t i;
-    PyObject *name_obj;
-    char *module_name = "null";
 
 #ifdef Py_DEBUG
     if (code == NULL || globals == NULL || !PyDict_Check(globals) ||
@@ -740,9 +738,12 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
 	    pyrlog("[%s] resize frame\n", __func__);
             if (Py_SIZE(f) < extras) {
 #ifdef Py_PYRONIA
-	        PyObject_GC_SecureDel(f);
-                f = PyObject_GC_NewSecureVar(PyFrameObject, &PyFrame_Type,
-					     extras);
+	      if (pyr_is_interpreter_build()) {
+		f = PyObject_GC_Resize(PyFrameObject, f, extras);
+	      }
+	      else {
+	        f = PyObject_GC_SecureResize(PyFrameObject, f, extras);
+	      }
 #else
 		f = PyObject_GC_Resize(PyFrameObject, f, extras);
 #endif
@@ -793,12 +794,6 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
     f->f_lasti = -1;
     f->f_lineno = code->co_firstlineno;
     f->f_iblock = 0;
-
-    name_obj = PyDict_GetItemString(f->f_globals, "__name__");
-    if (name_obj && PyString_Check(name_obj))
-      module_name = PyString_AsString(name_obj);
-    
-    pyrlog("[%s] Allocated frame at %p for module: %s\n", __func__, f, module_name);
     
     _PyObject_GC_TRACK(f);
     return f;

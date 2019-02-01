@@ -32,27 +32,33 @@ PyObject *_PyObject_GC_SecureMalloc(size_t);
 PyVarObject *_PyObject_GC_NewSecureVar(PyTypeObject *, Py_ssize_t);
 #define PyObject_GC_NewSecureVar(type, typeobj, n) \
                 ( (type *) _PyObject_GC_NewSecureVar((typeobj), (n)) )
+PyVarObject * _PyObject_GC_SecureResize(PyVarObject *, Py_ssize_t);
+#define PyObject_GC_SecureResize(type, op, n) \
+                ( (type *) _PyObject_GC_SecureResize((PyVarObject *)(op), (n)) )
+
 void PyObject_GC_SecureDel(void *);
 
 // these are wrappers around interp dom write access grant and revokes
 // to enable toggling pyronia on and off (and so we don't need to import pyronia_lib.h directly anywhere but here)
 #ifdef Py_PYRONIA
-#define pyr_protected_mem_access_pre(op)		\
-  if (op && pyr_is_isolated_data_obj((void *)op))	\
+#define pyr_protected_mem_access_pre(op) do {		\
+    if (op && pyr_is_isolated_data_obj((void *)op))	\
       pyr_grant_data_obj_write((void *)op);		\
-      else						\
-	pyr_grant_critical_state_write((void *)op)
+    else						\
+      pyr_grant_critical_state_write((void *)op);	\
+  } while(0)
 #else
 #define pyr_protected_mem_access_pre(op) \
     do { } while(0)
 #endif
 
 #ifdef Py_PYRONIA
-#define pyr_protected_mem_access_post(op) \
-  if (op && pyr_is_isolated_data_obj((void *)op))	\
+#define pyr_protected_mem_access_post(op) do {		\
+    if (op && pyr_is_isolated_data_obj((void *)op))	\
       pyr_revoke_data_obj_write((void *)op);		\
-      else						\
-	pyr_revoke_critical_state_write((void *)op)
+    else						\
+      pyr_revoke_critical_state_write((void *)op);	\
+  } while(0)
 #else
 #define pyr_protected_mem_access_post(op) \
     do { } while(0)
