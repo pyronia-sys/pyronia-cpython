@@ -144,11 +144,13 @@ PyCFunction_Call(PyObject *func, PyObject *arg, PyObject *kw)
 static void
 meth_dealloc(PyCFunctionObject *m)
 {
+    pyr_protected_mem_access_pre(m);
     _PyObject_GC_UNTRACK(m);
     pyr_protected_mem_access_pre(m->m_self);
     Py_XDECREF(m->m_self);
-    Py_XDECREF(m->m_module);
     pyr_protected_mem_access_post(m->m_self);
+    Py_XDECREF(m->m_module);
+    pyr_protected_mem_access_post(m);
 #ifdef Py_PYRONIA
     if (pyr_is_isolated_data_obj(m)) {
       PyObject_GC_Del(m);

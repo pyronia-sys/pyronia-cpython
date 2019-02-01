@@ -933,21 +933,21 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define THIRD()           (stack_pointer[-3])
 #define FOURTH()          (stack_pointer[-4])
 #define PEEK(n)           (stack_pointer[-(n)])
-#define SET_TOP(v)        { pyr_protected_mem_access_pre(NULL); \
+#define SET_TOP(v)        { pyr_protected_mem_access_pre(stack_pointer[-1]); \
       stack_pointer[-1] = (v); \
-      pyr_protected_mem_access_post(NULL); }
-#define SET_SECOND(v)     { pyr_protected_mem_access_pre(NULL); \
+      pyr_protected_mem_access_post(stack_pointer[-1]); }
+#define SET_SECOND(v)     { pyr_protected_mem_access_pre(stack_pointer[-2]); \
       stack_pointer[-2] = (v); \
-      pyr_protected_mem_access_post(NULL); }
-#define SET_THIRD(v)      { pyr_protected_mem_access_pre(NULL); \
+      pyr_protected_mem_access_post(stack_pointer[-2]); }
+#define SET_THIRD(v)      { pyr_protected_mem_access_pre(stack_pointer[-3]); \
       stack_pointer[-3] = (v); \
-      pyr_protected_mem_access_post(NULL); }
-#define SET_FOURTH(v)     { pyr_protected_mem_access_pre(NULL); \
+      pyr_protected_mem_access_post(stack_pointer[-3]); }
+#define SET_FOURTH(v)     { pyr_protected_mem_access_pre(stack_pointer[-4]); \
       stack_pointer[-4] = (v); \
-      pyr_protected_mem_access_post(NULL); }
-#define SET_VALUE(n, v)   { pyr_protected_mem_access_pre(NULL); \
+      pyr_protected_mem_access_post(stack_pointer[-4]); }
+#define SET_VALUE(n, v)   { pyr_protected_mem_access_pre(stack_pointer[-(n)]); \
       stack_pointer[-(n)] = (v);			      \
-      pyr_protected_mem_access_post(NULL); }
+      pyr_protected_mem_access_post(stack_pointer[-(n)]); }
 #define BASIC_STACKADJ(n) (stack_pointer += n)
 #define BASIC_PUSH(v)     (*stack_pointer++ = (v))
 #define BASIC_POP()       (*--stack_pointer)
@@ -979,9 +979,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                                  BASIC_STACKADJ(n); \
                                  pyr_protected_mem_access_post(NULL); }
 #define EXT_POP(STACK_POINTER) ({ pyr_protected_mem_access_pre(NULL); \
-                               --STACK_POINTER; \
+      --(STACK_POINTER);					      \
 			       pyr_protected_mem_access_post(NULL); \
-			       *STACK_POINTER; })
+			       *(STACK_POINTER); })
 
 
 #endif
@@ -1075,7 +1075,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
     assert(stack_pointer != NULL);
     pyr_protected_mem_access_pre(f);
     f->f_stacktop = NULL;       /* remains NULL unless yield suspends frame */
-    pyr_protected_mem_access_post(NULL);
+    pyr_protected_mem_access_post(f);
 
 #ifdef LLTRACE
     lltrace = PyDict_GetItemString(f->f_globals, "__lltrace__") != NULL;
@@ -1202,7 +1202,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 goto on_error;
             }
         }
-	pyr_protected_mem_access_post(NULL);
+	pyr_protected_mem_access_post(f);
 
         /* Extract opcode and argument */
         opcode = NEXTOP();
@@ -1279,9 +1279,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         TARGET(STORE_FAST)
         {
             v = POP();
-	    pyr_protected_mem_access_pre(NULL);
+	    pyr_protected_mem_access_pre(v);
             SETLOCAL(oparg, v);
-	    pyr_protected_mem_access_post(NULL);
+	    pyr_protected_mem_access_post(v);
             FAST_DISPATCH();
         }
 
@@ -2149,7 +2149,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             retval = POP();
             pyr_protected_mem_access_pre(f);
             f->f_stacktop = stack_pointer;
-            pyr_protected_mem_access_post(NULL);
+            pyr_protected_mem_access_post(f);
             why = WHY_YIELD;
             goto fast_yield;
         }
@@ -2372,7 +2372,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             if ((err = PyDict_DelItem(f->f_globals, w)) != 0)
                 format_exc_check_arg(
                     PyExc_NameError, GLOBAL_NAME_ERROR_MSG, w);
-            pyr_protected_mem_access_post(NULL);
+            pyr_protected_mem_access_post(f);
             break;
         }
 
@@ -3013,7 +3013,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             pyr_protected_mem_access_pre(f);
             PyFrame_BlockSetup(f, SETUP_WITH, INSTR_OFFSET() + oparg,
                                STACK_LEVEL());
-            pyr_protected_mem_access_post(NULL);
+            pyr_protected_mem_access_post(f);
 
             PUSH(x);
                 DISPATCH();
@@ -3153,7 +3153,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 		pyr_protected_mem_access_pre(*pfunc);
                 Py_DECREF(*pfunc);
                 *pfunc = self;
-		pyr_protected_mem_access_post(NULL);
+		pyr_protected_mem_access_post(*pfunc);
                 na++;
             } else
                 Py_INCREF(func);
@@ -3168,7 +3168,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 	        w = POP();
 		pyr_protected_mem_access_pre(w);
                 Py_DECREF(w);
-		pyr_protected_mem_access_post(NULL);
+		pyr_protected_mem_access_post(w);
             }
             PUSH(x);
             if (x != NULL) DISPATCH();
@@ -3331,7 +3331,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         if (why == WHY_EXCEPTION) {
 	    pyr_protected_mem_access_pre(f);
 	    PyTraceBack_Here(f);
-	    pyr_protected_mem_access_post(NULL);
+	    pyr_protected_mem_access_post(f);
 
             if (tstate->c_tracefunc != NULL)
                 call_exc_trace(tstate->c_tracefunc,
@@ -3361,13 +3361,13 @@ fast_block_end:
             /* Now we have to pop the block. */
             pyr_protected_mem_access_pre(f);
             f->f_iblock--;
-            pyr_protected_mem_access_post(NULL);
+            pyr_protected_mem_access_post(f);
 
             while (STACK_LEVEL() > b->b_level) {
                 v = POP();
 		pyr_protected_mem_access_pre(v);
                 Py_XDECREF(v);
-		pyr_protected_mem_access_post(NULL);
+		pyr_protected_mem_access_post(v);
             }
             if (b->b_type == SETUP_LOOP && why == WHY_BREAK) {
                 why = WHY_NOT;
@@ -4564,9 +4564,9 @@ call_function(PyObject ***pp_stack, int oparg
             READ_TIMESTAMP(*pintr0);
             C_TRACE(x, PyCFunction_Call(func,callargs,NULL));
             READ_TIMESTAMP(*pintr1);
-	    pyr_protected_mem_access_pre(NULL);
+	    pyr_protected_mem_access_pre(callargs);
             Py_XDECREF(callargs);
-	    pyr_protected_mem_access_post(NULL);
+	    pyr_protected_mem_access_post(callargs);
         }
 	if (is_sandbox) {
 	  if (x == Py_None) {
@@ -4586,11 +4586,11 @@ call_function(PyObject ***pp_stack, int oparg
             PCALL(PCALL_BOUND_METHOD);
 	    pyr_protected_mem_access_pre(self);
             Py_INCREF(self);
-	    pyr_protected_mem_access_pre(self);
+	    pyr_protected_mem_access_post(self);
             func = PyMethod_GET_FUNCTION(func);
 	    pyr_protected_mem_access_pre(func);
             Py_INCREF(func);
-	    pyr_protected_mem_access_pre(func);
+	    pyr_protected_mem_access_post(func);
 	    pyr_protected_mem_access_pre(NULL);
             Py_SETREF(*pfunc, self);
 	    pyr_protected_mem_access_post(NULL);
@@ -4680,7 +4680,7 @@ fast_function(PyObject *func, PyObject ***pp_stack, int n, int na, int nk)
         if (f == NULL)
             return NULL;
 
-        pyr_protected_mem_access_pre(NULL);
+        pyr_protected_mem_access_pre(f);
         fastlocals = f->f_localsplus;
         stack = (*pp_stack) - n;
 
@@ -4690,12 +4690,12 @@ fast_function(PyObject *func, PyObject ***pp_stack, int n, int na, int nk)
 	    pyr_protected_mem_access_post(*stack);
             fastlocals[i] = *stack++;
         }
-        pyr_protected_mem_access_post(NULL);
+        pyr_protected_mem_access_post(f);
         retval = PyEval_EvalFrameEx(f,0);
         ++tstate->recursion_depth;
-	pyr_protected_mem_access_pre(NULL);
+	pyr_protected_mem_access_pre(f);
         Py_DECREF(f);
-	pyr_protected_mem_access_post(NULL);
+	pyr_protected_mem_access_post(f);
         --tstate->recursion_depth;
         return retval;
     }
