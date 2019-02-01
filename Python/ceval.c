@@ -280,6 +280,7 @@ PyEval_AcquireThread(PyThreadState *tstate)
     if (PyThreadState_Swap(tstate) != NULL)
         Py_FatalError(
             "PyEval_AcquireThread: non-NULL old thread state");
+    pyr_interp_tstate = tstate;
 }
 
 void
@@ -343,6 +344,7 @@ PyEval_SaveThread(void)
     PyThreadState *tstate = PyThreadState_Swap(NULL);
     if (tstate == NULL)
         Py_FatalError("PyEval_SaveThread: NULL tstate");
+    pyr_interp_tstate = tstate;
 #ifdef WITH_THREAD
     if (interpreter_lock)
         PyThread_release_lock(interpreter_lock);
@@ -1152,6 +1154,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 
                 if (PyThreadState_Swap(NULL) != tstate)
                     Py_FatalError("ceval: tstate mix-up");
+		pyr_interp_tstate = tstate;
                 PyThread_release_lock(interpreter_lock);
 
                 /* Other threads may run now */
@@ -1160,7 +1163,6 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 
                 if (PyThreadState_Swap(tstate) != NULL)
                     Py_FatalError("ceval: orphan tstate");
-
                 /* Check for thread interrupts */
 
                 if (tstate->async_exc != NULL) {
@@ -5613,6 +5615,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
 
   return child;
  fail:
+  printf("[%s] Checking tstate %p\n", __func__, pyr_interp_tstate);
   if (child)
     pyr_free_callgraph(&child);
   return NULL;
