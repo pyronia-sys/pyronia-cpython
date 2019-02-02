@@ -5555,11 +5555,8 @@ static inline char *get_module_name(PyFrameObject *f) {
   PyObject *name_obj = NULL;
   Py_INCREF(f->f_globals);
   name_obj = PyDict_GetItemString(f->f_globals, "__name__");
-  Py_INCREF(name_obj);
-  if (PyString_Check(name_obj)) {
+  if (name_obj)
     name = PyString_AsString(name_obj);
-  }
-  Py_DECREF(name_obj);
   Py_DECREF(f->f_globals);
   return name;
 }
@@ -5580,7 +5577,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
   
   cur_frame = _PyThreadState_GetFrame(pyr_interp_tstate);
 
-  pyrlog("[%s] Collecting at frame %p (tstate %p, interp_tstate %p)\n", __func__, cur_frame, _PyThreadState_Current, pyr_interp_tstate);
+  printf("[%s] Collecting at frame %p (tstate %p, interp_tstate %p)\n", __func__, cur_frame, _PyThreadState_Current, pyr_interp_tstate);
 
   while (cur_frame != NULL) {
     pyr_cg_node_t *next;
@@ -5593,9 +5590,12 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
     }
 
     char *func_name = PyString_AsString(cur_frame->f_code->co_name);
-    snprintf(lib_func_name, strlen(func_name)+strlen(mod_name)+2, "%s.%s", mod_name, func_name);
+    memcpy(lib_func_name, mod_name, strlen(mod_name));
+    memcpy(lib_func_name+strlen(mod_name), ".", 1);
+    memcpy(lib_func_name+strlen(mod_name)+1, func_name, (strlen(func_name) <= (128 - strlen(mod_name)+1) ? strlen(func_name) : (128 - strlen(mod_name)+1)));
+    //snprintf(lib_func_name, strlen(func_name)+strlen(mod_name)+2, "%s.%s", mod_name, func_name);
 
-    pyrlog("[%s] lib function: %s\n", __func__, lib_func_name);
+    printf("[%s] lib function: %s\n", __func__, lib_func_name);
 
     // let's do an optimization, if the previous frame we visited is for the same
     // module, skip adding it
