@@ -5580,7 +5580,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
   printf("[%s] Collecting at frame %p (tstate %p, interp_tstate %p)\n", __func__, cur_frame, _PyThreadState_Current, pyr_interp_tstate);
 
   while (cur_frame != NULL) {
-    pyr_cg_node_t *next;
+    //pyr_cg_node_t *next;
     memset(lib_func_name, 0, 128);
 
     char *mod_name = get_module_name(cur_frame);
@@ -5595,20 +5595,20 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
     memcpy(lib_func_name+strlen(mod_name)+1, func_name, (strlen(func_name) <= (128 - strlen(mod_name)+1) ? strlen(func_name) : (128 - strlen(mod_name)+1)));
     //snprintf(lib_func_name, strlen(func_name)+strlen(mod_name)+2, "%s.%s", mod_name, func_name);
 
-    printf("[%s] lib function: %s\n", __func__, lib_func_name);
+    pyrlog("[%s] lib function: %s\n", __func__, lib_func_name);
 
     // let's do an optimization, if the previous frame we visited is for the same
     // module, skip adding it
     //if (child && strncmp(mod_name, child->lib, strlen(mod_name))) {
     // skip adding a node for any functions defined in the main module
     if (strncmp(lib_func_name, "__main__.", 9)) {
-      err = pyr_new_cg_node(&next, lib_func_name, CAM_DATA, child);
+      err = pyr_serialize_callstack(lib_func_name);
       if (err) {
-        printf("[%s] Could not create cg node for lib %s\n", __func__, lib_func_name);
+        printf("[%s] Could not create serialize node for lib %s\n", __func__, lib_func_name);
         goto fail;
       }
-      pyrlog("[%s] Added cg node for module %s\n", __func__, lib_func_name);
-      child = next;
+      printf("[%s] Added cg node for module %s\n", __func__, lib_func_name);
+      //child = next;
     }
     cur_frame = cur_frame->f_back;
   }
