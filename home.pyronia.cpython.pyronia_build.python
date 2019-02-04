@@ -31,6 +31,7 @@
 /proc/*/maps r,
 /dev/urandom r,
 /dev/ r,
+/home/ r,
 /home/pyronia/.local/lib/python2.7/site-packages** rmix,
 
 /home/pyronia/cpython/home.pyronia.cpython.pyronia_build.python-lib.prof r,
@@ -40,10 +41,11 @@
 # /home/pyronia/hello.txt r,
 
 # TODO: replace these with YOUR resource access rules
-# include /home/pyronia/libpyronia/testsuite/python-tests/openalpr_test.prof
-# include /home/pyronia/cpython/install.prof
-# include /home/pyronia/libpyronia/apps/tweeting-plants/twitterPhoto.prof
+include /home/pyronia/libpyronia/testsuite/python-tests/openalpr_test.prof
 # include /home/pyronia/libpyronia/apps/tensorflow-img-classifier/tensorflow.prof
+# include /home/pyronia/cpython/install.prof
+
+# include /home/pyronia/libpyronia/apps/tweeting-plants/twitterPhoto.prof
 # include /home/pyronia/libpyronia/apps/RPiAlexa/alexa.prof
-include /home/pyronia/libpyronia/apps/aws-moisture-sensor/moisture.prof
+# include /home/pyronia/libpyronia/apps/aws-moisture-sensor/moisture.prof
 }
