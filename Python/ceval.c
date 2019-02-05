@@ -4578,7 +4578,7 @@ call_function(PyObject ***pp_stack, int oparg
 	    // set this pending to be loaded back onto the stack
 	    sandbox_ret = x;
 	  }
-	  printf("[%s] Returned object %p\n", __func__, x);
+	  //printf("[%s] Returned object %p\n", __func__, x);
 	}
     } else {
         if (PyMethod_Check(func) && PyMethod_GET_SELF(func) != NULL) {
@@ -4617,7 +4617,7 @@ call_function(PyObject ***pp_stack, int oparg
 	  else {
 	    sandbox_ret = x;
 	  }
-	  printf("[%s] Returned object %p\n", __func__, x);
+	  //printf("[%s] Returned object %p\n", __func__, x);
 	}
         READ_TIMESTAMP(*pintr1);
 	pyr_protected_mem_access_pre(func);
@@ -5577,7 +5577,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
   
   cur_frame = _PyThreadState_GetFrame(pyr_interp_tstate);
 
-  printf("[%s] Collecting at frame %p (tstate %p, interp_tstate %p)\n", __func__, cur_frame, _PyThreadState_Current, pyr_interp_tstate);
+  pyrlog("[%s] Collecting at frame %p (tstate %p, interp_tstate %p)\n", __func__, cur_frame, _PyThreadState_Current, pyr_interp_tstate);
 
   while (cur_frame != NULL) {
     //pyr_cg_node_t *next;
@@ -5607,7 +5607,7 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
         printf("[%s] Could not create serialize node for lib %s\n", __func__, lib_func_name);
         goto fail;
       }
-      printf("[%s] Added cg node for module %s\n", __func__, lib_func_name);
+      pyrlog("[%s] Added cg node for module %s\n", __func__, lib_func_name);
       //child = next;
     }
     cur_frame = cur_frame->f_back;

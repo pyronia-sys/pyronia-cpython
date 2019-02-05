@@ -301,8 +301,6 @@ Py_InitializeEx(int install_sigs)
     _PyGILState_Init(interp, tstate);
 #endif /* WITH_THREAD */
 
-    printf("[%s] tstate at init %p\n", __func__, _PyThreadState_Current);
-
     if (!Py_NoSiteFlag)
         initsite(); /* Module site */
 
@@ -588,7 +586,7 @@ Py_Finalize(void)
     // secure state, SI comm and memdoms
     pyr_exit();
 #else
-    printf("[%s] Total frame allocations: %lu bytes\n", __func__, total_frame_alloc);
+    //printf("[%s] Total frame allocations: %lu bytes\n", __func__, total_frame_alloc);
 #endif
 
     call_ll_exitfuncs();

@@ -4,6 +4,7 @@
 #include "osdefs.h"
 #include "code.h" /* For CO_FUTURE_DIVISION */
 #include "import.h"
+#include "../Python/pyronia_python.h"
 
 // FIXME: this should be a build flag
 #include <time.h>
@@ -260,6 +261,7 @@ Py_Main(int argc, char **argv)
     int version = 0;
     int saw_unbuffered_flag = 0;
     PyCompilerFlags cf;
+    FILE *time_file = NULL;
 
     cf.cf_flags = 0;
 
@@ -677,7 +679,21 @@ Py_Main(int argc, char **argv)
     Py_Finalize();
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
     result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
-    fprintf(stdout, "CPU time for %s = %.2f us\n", filename, result);
+    if (!pyr_is_interpreter_build()) {
+      char *timefile_str = NULL;
+      size_t timefile_str_len = strlen(filename)+5+1;
+      if((timefile_str = malloc(timefile_str_len)) == NULL){
+	printf("Not recording timing for %s!\n", filename);
+	goto done_timing;
+      }
+      memset(timefile_str, 0, timefile_str_len);   // ensures the memory is an empty string
+      strcat(timefile_str, filename);
+      strcat(timefile_str, ".data");
+      time_file = fopen(timefile_str, "a+");
+      fprintf(time_file, "%.2f\n", result);
+      fclose(time_file);
+    }
+ done_timing:
 #ifdef RISCOS
     if (Py_RISCOSWimpFlag)
         fprintf(stderr, "\x0cq\x0c"); /* make frontend quit */
