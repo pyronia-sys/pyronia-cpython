@@ -679,20 +679,24 @@ Py_Main(int argc, char **argv)
     Py_Finalize();
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
     result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
+#ifdef Py_PYRONIA
     if (!pyr_is_interpreter_build()) {
+#endif
       char *timefile_str = NULL;
-      size_t timefile_str_len = strlen(filename)+5+1;
+      size_t timefile_str_len = strlen(Pyr_MainMod)+5+1;
       if((timefile_str = malloc(timefile_str_len)) == NULL){
-	printf("Not recording timing for %s!\n", filename);
+	printf("Not recording timing for %s!\n", Pyr_MainMod);
 	goto done_timing;
       }
       memset(timefile_str, 0, timefile_str_len);   // ensures the memory is an empty string
-      strcat(timefile_str, filename);
+      strcat(timefile_str, Pyr_MainMod);
       strcat(timefile_str, ".data");
       time_file = fopen(timefile_str, "a+");
       fprintf(time_file, "%.2f\n", result);
       fclose(time_file);
+#ifdef Py_PYRONIA
     }
+#endif
  done_timing:
 #ifdef RISCOS
     if (Py_RISCOSWimpFlag)
