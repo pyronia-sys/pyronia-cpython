@@ -656,13 +656,28 @@ list_clear(PyListObject *a)
         /* Because XDECREF can recursively invoke operations on
            this list, we make it empty first. */
         i = Py_SIZE(a);
+	pyr_protected_mem_access_pre(item);
         Py_SIZE(a) = 0;
         a->ob_item = NULL;
         a->allocated = 0;
+	pyr_protected_mem_access_post(item);
         while (--i >= 0) {
+	    pyr_protected_mem_access_pre(item[i]);
+	    PyObject *tmp = item[i];
             Py_XDECREF(item[i]);
+	    if (tmp)
+	      pyr_protected_mem_access_post(tmp);
         }
+#ifdef Py_PYRONIA
+	if (pyr_is_isolated_data_obj(item)) {
+	  pyr_data_obj_free(item);
+	}
+	else {
+#endif
         PyMem_FREE(item);
+#ifdef Py_PYRONIA
+	}
+#endif
     }
     /* Never fails; the return value can be ignored.
        Note that there is no guarantee that the list is actually empty

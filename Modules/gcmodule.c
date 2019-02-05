@@ -852,15 +852,22 @@ delete_garbage(PyGC_Head *collectable, PyGC_Head *old)
         }
         else {
             if ((clear = Py_TYPE(op)->tp_clear) != NULL) {
-                Py_INCREF(op);
+	        pyr_protected_mem_access_pre(op);
+	        Py_INCREF(op);
+		pyr_protected_mem_access_post(op);
                 clear(op);
+		pyr_protected_mem_access_pre(op);
+		PyObject *tmp = op;
                 Py_DECREF(op);
+		pyr_protected_mem_access_post(tmp);
             }
         }
         if (collectable->gc.gc_next == gc) {
             /* object is still alive, move it, it may die later */
             gc_list_move(gc, old);
+	    pyr_protected_mem_access_pre(gc);
             gc->gc.gc_refs = GC_REACHABLE;
+	    pyr_protected_mem_access_post(gc);
         }
     }
 }

@@ -2270,9 +2270,18 @@ _Py_ForgetReference(register PyObject *op)
 void
 _Py_Dealloc(PyObject *op)
 {
-  destructor dealloc = Py_TYPE(op)->tp_dealloc;
-  _Py_ForgetReference(op);
-  (*dealloc)(op);
+#ifdef Py_PYRONIA
+  if (pyr_is_isolated_data_obj(op)) {
+    pyr_data_obj_free(op);
+  }
+  else {
+#endif
+    destructor dealloc = Py_TYPE(op)->tp_dealloc;
+    _Py_ForgetReference(op);
+    (*dealloc)(op);
+#ifdef Py_PYRONIA
+  }
+#endif
 }
 
 /* Print all live objects.  Because PyObject_Print is called, the
