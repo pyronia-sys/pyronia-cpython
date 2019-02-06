@@ -554,9 +554,6 @@ Py_Main(int argc, char **argv)
     Py_SetProgramName(argv[0]);
 #endif
     Pyr_MainMod = (module == NULL ? filename : module);
-    double result = 0;
-    struct timespec start, stop;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
     Py_Initialize();
 
     if (Py_VerboseFlag ||
@@ -651,15 +648,38 @@ Py_Main(int argc, char **argv)
                 PyErr_Print();
                 sts = 1;
             } else {
-                sts = PyRun_AnyFileExFlags(
+	      double result = 0;
+	      struct timespec start, stop;
+	      clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+	      sts = PyRun_AnyFileExFlags(
                     fp,
                     filename == NULL ? "<stdin>" : filename,
                     filename != NULL, &cf) != 0;
-            }
+	      clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+	      result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
+#ifdef Py_PYRONIA
+	      if (!pyr_is_interpreter_build()) {
+#endif
+		char *timefile_str = NULL;
+		size_t timefile_str_len = strlen(Pyr_MainMod)+5+1;
+		if((timefile_str = malloc(timefile_str_len)) == NULL){
+		  printf("Not recording timing for %s!\n", Pyr_MainMod);
+		  goto done_timing;
+		}
+		memset(timefile_str, 0, timefile_str_len);   // ensures the memory is an empty string
+		strcat(timefile_str, Pyr_MainMod);
+		strcat(timefile_str, ".data");
+		time_file = fopen(timefile_str, "a+");
+		fprintf(time_file, "%.2f\n", result);
+		fclose(time_file);
+#ifdef Py_PYRONIA
+	      }
+#endif
+	    }
         }
 
     }
-
+ done_timing:
     /* Check this environment variable at the end, to give programs the
      * opportunity to set it from Python.
      */
@@ -677,27 +697,6 @@ Py_Main(int argc, char **argv)
     }
 
     Py_Finalize();
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
-    result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
-#ifdef Py_PYRONIA
-    if (!pyr_is_interpreter_build()) {
-#endif
-      char *timefile_str = NULL;
-      size_t timefile_str_len = strlen(Pyr_MainMod)+5+1;
-      if((timefile_str = malloc(timefile_str_len)) == NULL){
-	printf("Not recording timing for %s!\n", Pyr_MainMod);
-	goto done_timing;
-      }
-      memset(timefile_str, 0, timefile_str_len);   // ensures the memory is an empty string
-      strcat(timefile_str, Pyr_MainMod);
-      strcat(timefile_str, ".data");
-      time_file = fopen(timefile_str, "a+");
-      fprintf(time_file, "%.2f\n", result);
-      fclose(time_file);
-#ifdef Py_PYRONIA
-    }
-#endif
- done_timing:
 #ifdef RISCOS
     if (Py_RISCOSWimpFlag)
         fprintf(stderr, "\x0cq\x0c"); /* make frontend quit */

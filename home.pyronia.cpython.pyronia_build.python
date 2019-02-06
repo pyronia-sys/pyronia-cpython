@@ -36,6 +36,7 @@
 
 /home/pyronia/cpython/home.pyronia.cpython.pyronia_build.python-lib.prof r,
 
+# /home/pyronia/libpyronia/testsuite/python-tests/hello.py.data rw,
 # /home/pyronia/libpyronia/testsuite/python-tests/hello.py r,
 # /home/pyronia/libpyronia/testsuite/python-tests/message.py r,
 # /home/pyronia/hello.txt r,

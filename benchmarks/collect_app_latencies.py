@@ -9,5 +9,6 @@ runs = 25
 app = sys.argv[1]
 
 for x in range (0, runs):
+    #subprocess.call(['./load_python_profile'])
     subprocess.call(['./pyronia_build/python', os.path.abspath(app)])
     print('Finished run '+str(x+1)+' for app '+app)
