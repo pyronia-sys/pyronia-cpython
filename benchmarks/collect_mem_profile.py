@@ -13,5 +13,5 @@ app_name = dirs[-1].strip()[:-3]
 
 for x in range (0, runs):
     #subprocess.call(['./load_python_profile'])
-    subprocess.call(['mprof', 'run', '-o', app_name+'/mprofile_'+app_name+'-'+str(x)+'-nopyr.dat', '../pyronia_build/python', os.path.abspath(app)])
+    subprocess.call(['mprof', 'run', '-o', app_name+'/mprofile_'+app_name+'-'+str(x)+'-pyr.dat', os.path.abspath(app)])
     print('Finished run '+str(x+1)+' for app '+app)
