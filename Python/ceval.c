@@ -5571,6 +5571,9 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
   int err = -1;
   PyFrameObject *cur_frame = NULL;
   char lib_func_name[128]; // 128 is kinda arbitrary, but we don't expect to have super long names
+#ifdef Py_PYRONIA_BENCH
+  int stack_depth = 0;
+#endif
 
   if (!pyr_interp_tstate)
     goto fail;
@@ -5610,9 +5613,18 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
       pyrlog("[%s] Added cg node for module %s\n", __func__, lib_func_name);
       //child = next;
     }
+#ifdef Py_PYRONIA_BENCH
+    stack_depth++;
+#endif
     cur_frame = cur_frame->f_back;
   }
 
+#ifdef Py_PYRONIA_BENCH
+  if (stack_depth > max_dep_depth) {
+    max_dep_depth = stack_depth;
+  }
+#endif
+  
   return child;
  fail:
   printf("[%s] Checking tstate %p\n", __func__, pyr_interp_tstate);

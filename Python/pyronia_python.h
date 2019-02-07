@@ -25,6 +25,10 @@ typedef struct _ts PyThreadState; // forward declarations
 PyThreadState *pyr_interp_tstate;
 int is_class_constructor; // needed to support class constructors as sandbox functions
 
+#ifdef Py_PYRONIA_BENCH
+int max_dep_depth;
+#endif
+
 void acquire_gil(void);
 void release_gil(void);
 

@@ -222,6 +222,9 @@ Py_InitializeEx(int install_sigs)
       Py_FatalError("Pyronia init failed");
     pyr_interp_tstate = tstate;
 #endif
+#ifdef Py_PYRONIA_BENCH
+    max_dep_depth = 0;
+#endif
     
     _Py_ReadyTypes();
 
