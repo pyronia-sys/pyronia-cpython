@@ -1,0 +1,6 @@
+CMDLINE ../pyronia_build/python /home/pyronia/libpyronia/apps/aws-moisture-sensor/plant_watering.py
+MEM 0.003906 1549497347.9616
+MEM 14.203125 1549497348.0621
+MEM 14.203125 1549497348.1641
+MEM 14.527344 1549497348.2650
+MEM 14.574219 1549497348.3658
