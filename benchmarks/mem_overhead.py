@@ -61,7 +61,7 @@ runs = 25
 
 data_path = '/Users/marcela/Research/lib-isolation/cpython/'
 
-apps = ['hello', 'twitterPhoto', 'alexa', 'plant_watering']
+apps = ['twitterPhoto', 'alexa', 'plant_watering']
 
 stats = dict()
 stats['min'] = []

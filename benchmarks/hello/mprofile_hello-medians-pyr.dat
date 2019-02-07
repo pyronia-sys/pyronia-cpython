@@ -1,0 +1,3 @@
+CMDLINE ../pyronia_build/python /home/pyronia/libpyronia/testsuite/python-tests/hello.py
+MEM 0.003906 1549515111.8
+MEM 5.906250 1549515111.91
