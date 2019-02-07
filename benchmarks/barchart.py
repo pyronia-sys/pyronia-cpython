@@ -24,14 +24,14 @@ nopyr_stddev = [ float(a[0])/1000000.0 for a in nopyr_data['stddev'] ]
 nopyr_e2e_stddev = [ float(a[1])/1000000.0 for a in nopyr_data['stddev'] ]
 
 fig, ax = plt.subplots()
-rects1 = ax.bar(ind - 0.75*width, nopyr_means, width/2, yerr=nopyr_stddev,
-                color='SkyBlue', edgecolor='black', label='Main-only', hatch='o')
-rects2 = ax.bar(ind - width/4, nopyr_e2e_means, width/2, yerr=nopyr_e2e_stddev,
-                color='SkyBlue', edgecolor='black', label='Application', hatch='/')
-rects3 = ax.bar(ind + width/4, pyr_means, width/2, yerr=pyr_stddev,
-                color='IndianRed', edgecolor='black', label='Main-only w/ Pyronia')
-rects4 = ax.bar(ind + 0.75*width, pyr_e2e_means, width/2, yerr=pyr_e2e_stddev,
-                color='IndianRed', edgecolor='black', label='Application w/ Pyronia', hatch='*')
+rects1 = ax.bar(ind - width/2, nopyr_e2e_means, width, yerr=nopyr_e2e_stddev, color='SkyBlue', edgecolor='black', label='Total')
+rects2 = ax.bar(ind - width/2, nopyr_means, width, yerr=nopyr_stddev,
+                color='SkyBlue', edgecolor='black', label='Module-only', hatch='//')
+rects3 = ax.bar(ind + width/2, pyr_e2e_means, width, yerr=pyr_e2e_stddev,
+                color='IndianRed', edgecolor='black', label='Total+Pyronia', hatch='\\\\')
+rects3 = ax.bar(ind + width/2, pyr_means, width, yerr=pyr_stddev,
+                color='IndianRed', edgecolor='black', label='Module+Pyronia', hatch='||')
+
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 ax.set_yscale('log')
@@ -39,9 +39,7 @@ ax.set_ylabel('time in seconds')
 ax.set_title('IoT main module and application execution times')
 ax.set_xticks(ind)
 ax.set_xticklabels(('hello', 'twitterPhoto', 'alexa', 'plant_watering'))
-
-plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-
+plt.legend()
 fig.savefig('apps-latency.pdf')
 
 '''
