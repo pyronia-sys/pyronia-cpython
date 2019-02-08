@@ -77,7 +77,7 @@ for a in apps:
     cmd_line = ""
     data_dict = dict()
     for i in range(0, runs):
-        data_dict = read_mprofile_file(data_path+'benchmarks/'+a+'/mprofile_'+a+'-'+str(i)+'-nopyr.dat')
+        data_dict = read_mprofile_file(data_path+'benchmarks/'+a+'/mprofile_'+a+'-'+str(i)+'-pyr.dat')
         ctr = 0
         for u in data_dict['mem_usage']:
             if points.get(str(ctr)) == None:
@@ -88,14 +88,14 @@ for a in apps:
             print("Mem usage data points mismatch: "+len(data_dict['mem_usage'])+" vs "+ctr)
         if len(data_dict['timestamp']) > len(timestamps):
             timestamps = data_dict['timestamp']
-    outfile = data_path+'/benchmarks/'+a+'/mprofile_'+a+'-means-nopyr.dat'
+    outfile = data_path+'/benchmarks/'+a+'/mprofile_'+a+'-means-pyr.dat'
     out = open(outfile, 'w+')
     out.write("CMDLINE "+data_dict['cmd_line']+"\n")
     for c, p in points.items():
         out.write("MEM %.6f %s\n" % (mean(p), timestamps[int(c)]))
     out.close()
 
-    outfile = data_path+'/benchmarks/'+a+'/mprofile_'+a+'-medians-nopyr.dat'
+    outfile = data_path+'/benchmarks/'+a+'/mprofile_'+a+'-medians-pyr.dat'
     out = open(outfile, 'w+')
     out.write("CMDLINE "+data_dict['cmd_line']+"\n")
     for c, p in points.items():
