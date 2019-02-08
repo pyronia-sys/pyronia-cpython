@@ -1,5 +1,6 @@
 from statistics import mean, median, stdev
 from collections import OrderedDict
+import os
 
 def read_mprofile_file(filename):
     """Read an mprofile file and return its content.
@@ -59,7 +60,7 @@ def read_mprofile_file(filename):
 
 runs = 25
 
-data_path = '/Users/marcela/Research/lib-isolation/cpython/'
+data_path = os.path.expanduser('~')+'/Research/lib-isolation/cpython/'
 
 apps = ['twitterPhoto', 'alexa', 'plant_watering']
 

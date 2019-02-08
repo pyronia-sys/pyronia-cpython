@@ -1,8 +1,6 @@
 from statistics import mean, median, stdev
 import json
-
-def calc_percent(new, orig):
-    return ((float(new)-float(orig))/float(orig))
+from basic_stats import calc_percent
 
 app_path = '/Users/marcela/Research/lib-isolation/cpython/'
 
