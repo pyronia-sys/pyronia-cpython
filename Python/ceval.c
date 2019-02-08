@@ -5612,10 +5612,10 @@ pyr_cg_node_t *Py_Generate_Pyronia_Callstack(void) {
       }
       pyrlog("[%s] Added cg node for module %s\n", __func__, lib_func_name);
       //child = next;
-    }
 #ifdef Py_PYRONIA_BENCH
-    stack_depth++;
+      stack_depth++;
 #endif
+    }
     cur_frame = cur_frame->f_back;
   }
 

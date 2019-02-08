@@ -6,8 +6,9 @@ Author: Marcela S. Melara
 import time
 import sys
 import util
+import os
 
-DIR = '../test_files'
+DIR = os.path.expanduser('~')+'/cpython/microbenchmarks/test_files'
 FILENAME = 'test1K.txt'
 READLEN = 1024
 n = 10
@@ -36,10 +37,10 @@ def set_experiment(expt):
 
 def read():
     global total_elapsed
-    f = open(DIR+"/"+FILENAME, 'rb')
     start = time.clock()
-    tmp = f.read(READLEN)
+    f = open(DIR+"/"+FILENAME, 'rb')
     diff = time.clock() - start
+    #tmp = f.read(READLEN)
     total_elapsed += diff
     f.close()
 
