@@ -3,3 +3,5 @@
 /home/pyronia/cpython/microbenchmarks/test_files/*.txt rm,
 /home/pyronia/cpython/microbenchmarks/data/*.csv rw,
 /home/pyronia/cpython/microbenchmarks/data/*.data rw,
+/usr/lib/x86_64-linux-gnu/libssl.so.1.1 rm,
+network inet tcp,

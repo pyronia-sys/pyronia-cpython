@@ -60,7 +60,8 @@ if __name__ == '__main__':
     for x in range(0, n):
         total_elapsed = 0
         for y in range(0, i):
-            read()
+            #read()
+            connect()
         util.print_experiment_microsecs(READLEN, util.avg(total_elapsed, i))
     # only compute avg for last half of trials since
     # the read times needs a few iterations to converge
