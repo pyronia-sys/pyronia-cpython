@@ -11,7 +11,7 @@ fsize = ['1K', '10K', '100K', '1M', '10M']
 
 stats = OrderedDict()
 for s in fsize:
-    f = open('data/open-latency-'+s+'-pyr.csv', "r")
+    f = open('data/open-latency-'+s+'-nopyr.csv', "r")
     latency_data = [l.strip() for l in f.readlines()]
     f.close()
 
@@ -35,6 +35,7 @@ for s in fsize:
         expt_stats['median'] = median(lats)
         expt_stats['max'] = max(lats)
         expt_stats['stddev'] = stdev(lats)
+        #        stats[dep] = expt_stats
 
         stats[dep][s] = expt_stats
 
@@ -45,7 +46,7 @@ for d, expt in stats.items():
     stats[d]['mean'] = mean(means)
     stats[d]['stddev'] = stdev(means)
 
-outfile = 'open-latency-pyr_stats.txt'
+outfile = 'open-latency-nopyr_stats.txt'
 f = open(outfile, "w+")
 json.dump(stats, f, indent=4)
 f.close()
