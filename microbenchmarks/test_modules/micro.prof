@@ -1,0 +1,5 @@
+/home/pyronia/cpython/microbenchmarks/ r,
+/home/pyronia/cpython/microbenchmarks/test_modules/*.py rm,
+/home/pyronia/cpython/microbenchmarks/test_files/*.txt rm,
+/home/pyronia/cpython/microbenchmarks/data/*.csv rw,
+/home/pyronia/cpython/microbenchmarks/data/*.data rw,

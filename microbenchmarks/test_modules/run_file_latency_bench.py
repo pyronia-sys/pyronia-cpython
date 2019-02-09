@@ -2,7 +2,7 @@ import sys
 import file_read
 import util
 
-n = 10
+n = 1
 i = 10000
 
 def set_experiment(d):
@@ -25,11 +25,13 @@ def set_experiment(d):
         return test_mod_1.read
 
 if __name__ == '__main__':
-    file_read.set_experiment(sys.argv[2])
+    file_size = sys.argv[2]
+    file_read.set_experiment(file_size)
     depth = int(sys.argv[1])
     read_func = set_experiment(depth)
     for x in range(0, n):
         file_read.total_elapsed = 0
         for y in range(0, i):
             read_func()
-        util.print_experiment_microsecs(depth, util.avg(file_read.total_elapsed, i))
+        util.save_open_latency(depth, file_size, util.avg(file_read.total_elapsed, i))
+        #util.print_experiment_microsecs(depth, util.avg(file_read.total_elapsed, i))
