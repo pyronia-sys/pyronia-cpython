@@ -1,0 +1,237 @@
+{
+    "0": {
+        "1K": {
+            "min": 264.0, 
+            "mean": 336.0, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 16.0, 
+            "interp_doms": 16.0
+        }, 
+        "10K": {
+            "min": 264.0, 
+            "mean": 336.0, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 16.0, 
+            "interp_doms": 16.0
+        }, 
+        "100K": {
+            "min": 264.0, 
+            "mean": 336.0, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 16.0, 
+            "interp_doms": 16.0
+        }, 
+        "1M": {
+            "min": 264.0, 
+            "mean": 336.0, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 16.0, 
+            "interp_doms": 16.0
+        }, 
+        "10M": {
+            "min": 264.0, 
+            "mean": 336.0, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 16.0, 
+            "interp_doms": 16.0
+        }
+    }, 
+    "25": {
+        "1K": {
+            "min": 192.0, 
+            "mean": 338.52631578947364, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 19.0, 
+            "interp_doms": 19.0
+        }, 
+        "10K": {
+            "min": 192.0, 
+            "mean": 338.52631578947364, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 19.0, 
+            "interp_doms": 19.0
+        }, 
+        "100K": {
+            "min": 192.0, 
+            "mean": 338.52631578947364, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 19.0, 
+            "interp_doms": 19.0
+        }, 
+        "1M": {
+            "min": 192.0, 
+            "mean": 338.52631578947364, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 19.0, 
+            "interp_doms": 19.0
+        }, 
+        "10M": {
+            "min": 192.0, 
+            "mean": 338.52631578947364, 
+            "median": 336.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 19.0, 
+            "interp_doms": 19.0
+        }
+    }, 
+    "50": {
+        "1K": {
+            "min": 312.0, 
+            "mean": 348.57142857142856, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 21.0, 
+            "interp_doms": 21.0
+        }, 
+        "10K": {
+            "min": 312.0, 
+            "mean": 348.57142857142856, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 21.0, 
+            "interp_doms": 21.0
+        }, 
+        "100K": {
+            "min": 312.0, 
+            "mean": 348.57142857142856, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 21.0, 
+            "interp_doms": 21.0
+        }, 
+        "1M": {
+            "min": 312.0, 
+            "mean": 348.57142857142856, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 21.0, 
+            "interp_doms": 21.0
+        }, 
+        "10M": {
+            "min": 312.0, 
+            "mean": 348.57142857142856, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 21.0, 
+            "interp_doms": 21.0
+        }
+    }, 
+    "75": {
+        "1K": {
+            "min": 168.0, 
+            "mean": 340.8, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 25.0, 
+            "interp_doms": 25.0
+        }, 
+        "10K": {
+            "min": 168.0, 
+            "mean": 340.8, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 25.0, 
+            "interp_doms": 25.0
+        }, 
+        "100K": {
+            "min": 168.0, 
+            "mean": 340.8, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 25.0, 
+            "interp_doms": 25.0
+        }, 
+        "1M": {
+            "min": 168.0, 
+            "mean": 340.8, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 25.0, 
+            "interp_doms": 25.0
+        }, 
+        "10M": {
+            "min": 168.0, 
+            "mean": 340.8, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 25.0, 
+            "interp_doms": 25.0
+        }
+    }, 
+    "100": {
+        "1K": {
+            "min": 192.0, 
+            "mean": 342.0, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 28.0, 
+            "interp_doms": 28.0
+        }, 
+        "10K": {
+            "min": 192.0, 
+            "mean": 342.0, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 28.0, 
+            "interp_doms": 28.0
+        }, 
+        "100K": {
+            "min": 192.0, 
+            "mean": 342.0, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 28.0, 
+            "interp_doms": 28.0
+        }, 
+        "1M": {
+            "min": 192.0, 
+            "mean": 342.0, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 28.0, 
+            "interp_doms": 28.0
+        }, 
+        "10M": {
+            "min": 192.0, 
+            "mean": 342.0, 
+            "median": 360.0, 
+            "max": 408.0, 
+            "stddev": 0.0, 
+            "total_doms": 28.0, 
+            "interp_doms": 28.0
+        }
+    }
+}
