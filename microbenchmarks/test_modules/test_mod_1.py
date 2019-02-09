@@ -1,4 +1,7 @@
-import file_read
+import syscalls_bench
 
 def read():
-    file_read.read()
+    syscalls_bench.read()
+
+def connect():
+    syscalls_bench.connect()

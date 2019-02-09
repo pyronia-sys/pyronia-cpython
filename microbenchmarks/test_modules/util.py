@@ -12,3 +12,8 @@ def save_open_latency(expt, fsize, average):
     f = open(data_dir+'/open-latency-'+str(fsize)+'-pyr.csv', 'a+')
     f.write("%d, %.3f\n" % (expt, (average*1000000)))
     f.close()
+
+def save_conn_latency(expt, average):
+    f = open(data_dir+'/connect-latency-pyr.csv', 'a+')
+    f.write("%d, %.3f\n" % (expt, (average*1000000)))
+    f.close()

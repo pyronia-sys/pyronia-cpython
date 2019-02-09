@@ -7,6 +7,7 @@ import time
 import sys
 import util
 import os
+import socket
 
 DIR = os.path.expanduser('~')+'/cpython/microbenchmarks/test_files'
 FILENAME = 'test1K.txt'
@@ -43,6 +44,16 @@ def read():
     #tmp = f.read(READLEN)
     total_elapsed += diff
     f.close()
+
+def connect():
+    global total_elapsed
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    start = time.clock()
+    s.connect(('127.0.0.1', 8000))
+    diff = time.clock() - start
+    total_elapsed += diff
+    reply = s.recv(1024)
+    s.close()
 
 if __name__ == '__main__':
     set_experiment(sys.argv[1])
